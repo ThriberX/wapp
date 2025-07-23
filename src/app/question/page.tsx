@@ -1,12 +1,12 @@
 'use client';
 
 import Image from "next/image";
-import Galaxy from "../../../components/Galaxy/Galaxy"; // Ye sahi path hai
+import Galaxy from "../../../components/Galaxy/Galaxy"; 
 
 export default function QuestionPage() {
   return (
     <>
-      {/* Galaxy background */}
+      
       <Galaxy 
         className="fixed top-0 left-0 w-full h-full -z-10"
         hueShift={200}
@@ -17,7 +17,6 @@ export default function QuestionPage() {
         mouseInteraction={true}
       />
       
-      {/* Tumhara existing content */}
       <div className="min-h-screen w-full flex items-center justify-center relative">
         <div className="absolute top-5 left-5 z-10">
           <Image src="/logo.png" alt="Logo" width={80} height={80} />
