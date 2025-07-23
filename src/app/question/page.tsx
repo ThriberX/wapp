@@ -13,8 +13,6 @@ export default function QuestionPage() {
         />
       </div>
 
-      {/* Aapka original background image wala div, ab LightRays ke neeche hoga */}
-      {/* Note: Agar LightRays ka opacity zyada hai, toh background image kam dikhegi */}
       <div className="min-h-screen w-full bg-cover bg-center bg-no-repeat flex items-center justify-center relative" style={{ backgroundImage: `url('/images/bg.jpg')` }}>
 
         <div className="absolute top-5 left-5 z-10">
