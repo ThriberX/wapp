@@ -1,0 +1,61 @@
+{
+    "q1": {
+      "id": "q1",
+      "question": "Are you a business owner?",
+      "options": [
+        { "label": "Yes", "next": "q2" },
+        { "label": "No", "next": "end_not_owner" }
+      ]
+    },
+    "q2": {
+      "id": "q2",
+      "question": "Do you run Google Ads?",
+      "options": [
+        { "label": "Yes", "next": "q3" },
+        { "label": "No", "next": "q4" }
+      ]
+    },
+    "q3": {
+      "id": "q3",
+      "question": "Do you track conversions in Google Ads?",
+      "options": [
+        { "label": "Yes", "next": "end_advanced" },
+        { "label": "No", "next": "end_track" }
+      ]
+    },
+    "q4": {
+      "id": "q4",
+      "question": "Have you tried running Meta (Facebook) Ads?",
+      "options": [
+        { "label": "Yes", "next": "q5" },
+        { "label": "No", "next": "end_start_meta" }
+      ]
+    },
+    "q5": {
+      "id": "q5",
+      "question": "Do you use Meta Pixel for tracking?",
+      "options": [
+        { "label": "Yes", "next": "end_meta_advanced" },
+        { "label": "No", "next": "end_pixel_suggestion" }
+      ]
+    },
+    "end_not_owner": {
+      "result": "This assessment is designed for business owners. Please refer your marketing team."
+    },
+    "end_advanced": {
+      "result": "You're using advanced Google Ads tracking. Great job!"
+    },
+    "end_track": {
+      "result": "Start tracking conversions to improve your ad performance."
+    },
+    "end_start_meta": {
+      "result": "Try Meta Ads to diversify your digital marketing strategy."
+    },
+    "end_meta_advanced": {
+      "result": "You are using Meta Ads effectively. Keep going!"
+    },
+    "end_pixel_suggestion": {
+      "result": "Add a Meta Pixel to improve ad performance and track results."
+    }
+  }
+  
