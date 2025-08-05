@@ -11,7 +11,7 @@ export default function QuestionPage() {
   const [answers, setAnswer]= useState<string[]>([]);
 
   useEffect(()=>{
-    fetch("/tree.json").then((res)=>res.json().then(setTree))
+    fetch("/tree.json").then((res)=>res.json().then(setTree)) 
   },[]);
 
   const handleClick=(options:{lable:string ; next:string})=>{
