@@ -2,6 +2,8 @@
 
 import Image from "next/image";
 import { useEffect,useState } from "react";
+import { db } from '@/lib/firebase'; 
+import { collection, addDoc } from 'firebase/firestore';
 
 export default function QuestionPage() {
 
@@ -9,15 +11,40 @@ export default function QuestionPage() {
   const [tree,setTree]=useState<any>(null);
   const [currentId, setcurrentId]=useState("q1");
   const [answers, setAnswer]= useState<string[]>([]);
+    const [sessionId, setSessionId] = useState<string>("");
 
   useEffect(()=>{
+     const newSessionId = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    setSessionId(newSessionId);
+    console.log(" Quiz Session Started:", newSessionId);
+
     fetch("/tree.json").then((res)=>res.json().then(setTree)) 
   },[]);
 
-  const handleClick=(options:{lable:string ; next:string})=>{
-    setAnswer((prev=>[...prev, options.lable]))
+  const handleClick=(options:{label:string ; next:string})=>{
+    const newAnswers = [...answers, options.label];
+    setAnswer(newAnswers);
     setcurrentId(options.next);
+
+    saveToFirebase(options.label, newAnswers);
   };
+
+  const saveToFirebase = async (selectedAnswer: string, allAnswers: string[]) => {
+    try {
+      console.log(" Saving answer to Firebase...");
+      const docRef = await addDoc(collection(db, "quiz_answers"), {
+        sessionId: sessionId,
+        answer: selectedAnswer,
+        allAnswers: allAnswers,
+        questionId: currentId,
+        timestamp: new Date()
+      });
+      console.log(" Answer saved! Session:", sessionId, "Doc ID:", docRef.id);
+    } catch (error) {
+      console.error(" Firebase error:", error);
+    }
+  };
+
  if (!tree){ 
   return<div className="text-white text-center"> Loading....... ....</div>;
   
