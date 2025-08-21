@@ -1,25 +1,25 @@
 import { NextResponse } from 'next/server';
-import { callClaudeAPI } from '@/lib/claude';
+import { callOpenAIAPI } from '@/lib/openai';
 
 export async function POST(req) {
   try {
     const { prompt } = await req.json();
     
-    const response = await callClaudeAPI(prompt);
+    const response = await callOpenAIAPI(prompt);
     
     if (response && response.result) {
       return NextResponse.json({ 
         result: response.result, 
-        modelUsed: 'claude' 
+        modelUsed: 'openai' 
       }, { status: 200 });
     }
     
-    throw new Error('Invalid response from Claude');
+    throw new Error('Invalid response from OpenAI');
     
   } catch (error) {
-    console.error('Claude API failed:', error.message);
+    console.error('OpenAI API failed:', error.message);
     return NextResponse.json({ 
-      error: 'Claude API failed', 
+      error: 'OpenAI API failed', 
       details: error.message 
     }, { status: 500 });
   }

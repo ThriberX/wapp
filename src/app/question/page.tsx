@@ -4,6 +4,7 @@ import Image from "next/image";
 import { useEffect, useState } from "react";
 import { db } from '@/lib/firebase'; 
 import { collection, addDoc } from 'firebase/firestore';
+import { getAIQuizAdvice } from './Interface'; 
 
 export default function QuestionPage() {
   const [tree, setTree] = useState<any>(null);
@@ -11,6 +12,7 @@ export default function QuestionPage() {
   const [answers, setAnswers] = useState<string[]>([]);
   const [sessionId, setSessionId] = useState<string>("");
   const [claudeResponse, setClaudeResponse] = useState<string | null>(null);
+  const [isLoadingAI, setIsLoadingAI] = useState<boolean>(false);
 
   useEffect(() => {
     const newSessionId = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
@@ -20,22 +22,25 @@ export default function QuestionPage() {
     fetch("/tree.json").then((res) => res.json().then(setTree));
   }, []);
 
-  const handleClick = (options: { label: string; next: string }) => {
+  const handleClick = async (options: { label: string; next: string }) => {
     const newAnswers = [...answers, options.label];
     setAnswers(newAnswers);
     setcurrentId(options.next);
 
-    saveToFirebase(options.label, newAnswers);
-    
-    const conversationHistory = newAnswers.map((answer, index) => {
-      const questionId = Object.keys(tree)[index];
-      const questionText = tree[questionId]?.question;
-      return `Question: ${questionText}. Answer: ${answer}.`;
-    }).join("\n");
-    
-    const userPrompt = `You are an expert consultant for a company named ThriberX. Based on the following quiz conversation, provide a short and encouraging suggestion for the user. Keep the response to a single sentence and in English.\n\n${conversationHistory}`;
-    
-    callClaudeAPI(userPrompt);
+    await saveToFirebase(options.label, newAnswers);
+
+    if (tree && tree[options.next]?.result) {
+      setIsLoadingAI(true);
+      try {
+        const aiAdvice = await getAIQuizAdvice(newAnswers, tree, sessionId);
+        setClaudeResponse(aiAdvice);
+      } catch (error) {
+        console.error("AI advice failed:", error);
+        setClaudeResponse("Sorry, couldn't get AI suggestions at the moment.");
+      } finally {
+        setIsLoadingAI(false);
+      }
+    }
   };
 
   const saveToFirebase = async (selectedAnswer: string, allAnswers: string[]) => {
@@ -51,34 +56,6 @@ export default function QuestionPage() {
       console.log("Answer saved! Session:", sessionId, "Doc ID:", docRef.id);
     } catch (error) {
       console.error("Firebase error:", error);
-    }
-  };
-
-  const callClaudeAPI = async (userPrompt: string) => {
-    try {
-      const res = await fetch('/api/claude', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ prompt: userPrompt }),
-        cache: 'no-store',
-      });
-
-      if (!res.ok) {
-        throw new Error('Network response was not ok');
-      }
-
-      const data = await res.json();
-      console.log("Claude's response:", data);
-      
-      if (data.completion && data.completion.content) {
-          setClaudeResponse(data.completion.content);
-      } else if (data.content && data.content[0].text) {
-          setClaudeResponse(data.content[0].text);
-      }
-    } catch (error) {
-      console.error('API call failed:', error);
     }
   };
 
@@ -101,7 +78,13 @@ export default function QuestionPage() {
               Your Assessment Result
             </h1>
             <p className="text-cyan-200 text-lg">{currentNode.result}</p>
-            {claudeResponse && (
+            
+            {isLoadingAI ? (
+              <div className="mt-4 p-4 rounded-lg bg-gray-800/50 backdrop-blur-sm border border-gray-700">
+                <p className="text-white">Getting AI suggestions...</p>
+                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-white mx-auto mt-2"></div>
+              </div>
+            ) : claudeResponse && (
               <div className="mt-4 p-4 rounded-lg bg-gray-800/50 backdrop-blur-sm border border-gray-700">
                 <p className="text-white mt-2 leading-relaxed">{claudeResponse}</p>
               </div>
