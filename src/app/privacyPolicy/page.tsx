@@ -10,7 +10,7 @@ export default function PrivacyPolicy() {
           </p>
   
           <p className="text-xl mb-6">
-            In general, you can visit Thriber’s website without telling us who you are and without
+            In general, you can visit Thriber`s website without telling us who you are and without
             revealing any information about you. There are times, however, when we may need
             information from you.
           </p>
