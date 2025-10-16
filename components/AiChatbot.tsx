@@ -36,12 +36,12 @@ export default function LandingPage() {
           <div className="bg-black/10 backdrop-blur-md border border-black/20 rounded-2xl p-6 shadow-lg w-full max-w-md text-center space-y-4">
             <h1 className="text-2xl md:text-3xl font-bold text-gray-900 drop-shadow-sm">Welcome!</h1>
             <p className="text-gray-700 text-base drop-shadow-sm">
-              We'd like to ask you a few questions to get started.
+              We`d like to ask you a few questions to get started.
             </p>
 
             <Link href="/question">
               <button className="mt-2 px-8 py-3 rounded-lg bg-gray-900 text-white font-semibold shadow-md hover:scale-105 active:scale-95 transition-transform duration-200 hover:bg-gray-800">
-                Let's Go
+                Let`s Go
               </button>
             </Link>
           </div>

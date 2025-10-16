@@ -27,13 +27,13 @@ export default function Navbar() {
       {/* Desktop Links  and routing needs to be done */}
       <ul className="hidden md:flex gap-6 items-center text-lg">
         <li>
-          <a href="/" className="hover:text-blue-600 transition">Home</a>
+          < Link href="/" className="hover:text-blue-600 transition">HOME</Link>
         </li>
         <li>
-          <a href="/" className="hover:text-blue-600 transition">Thriber Mode</a>
+          <a href="" className="hover:text-blue-600 transition">Thriber Mode</a>
         </li>
         <li>
-          <a href="/" className="hover:text-blue-600 transition">About Us</a>
+          <a href="" className="hover:text-blue-600 transition">About Us</a>
         </li>
         <li>
           <a href="/services" className="hover:text-blue-600 transition">Services</a>
@@ -61,13 +61,13 @@ export default function Navbar() {
       {isNavOpen && (
         <ul className="absolute top-20 right-4 bg-black text-white rounded-xl flex flex-col gap-4 p-6 w-60 md:hidden">
           <li>
-            <a href="/" className="hover:text-blue-600 transition" onClick={toggleNav}>Home</a>
+          < Link href="/" className="hover:text-blue-600 transition">HOME</Link>
           </li>
           <li>
-            <a href="/" className="hover:text-blue-600 transition" onClick={toggleNav}>Thriber Mode</a>
+            <a href="" className="hover:text-blue-600 transition" onClick={toggleNav}>Thriber Mode</a>
           </li>
           <li>
-            <a href="/" className="hover:text-blue-600 transition" onClick={toggleNav}>Contact Us</a>
+            <a href="" className="hover:text-blue-600 transition" onClick={toggleNav}>Contact Us</a>
           </li>
           <li>
             <a href="/services" className="hover:text-blue-600 transition" onClick={toggleNav}>Services</a>

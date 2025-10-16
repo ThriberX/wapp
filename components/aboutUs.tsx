@@ -35,13 +35,13 @@ export default function AboutSection() {
               
             </h1>
             <h2 className="text-4xl sm:text-5xl lg:text-6xl font-black pt-4 lg:pt-6">
-              It's needs
+              It`s needs
             </h2>
           </div>
 
           <p className="text-gray-300 text-xl sm:text-2xl lg:text-3xl leading-relaxed font-medium max-w-2xl mx-auto lg:mx-0">
             We chart the course for a smooth sailing of your business and your customers 
-            in the stormy digital seas of today's time.
+            in the stormy digital seas of today`s time.
           </p>
 
           {/* Bigger Animated Button */}

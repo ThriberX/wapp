@@ -2,6 +2,8 @@
 import { useState } from "react";
 import { GRADIENTS } from "@/lib/theme/colours";
 import { buttonStyles, buttonHandlers } from "@/lib/theme/buttonstyle";
+import Image from "next/image"
+
 
 export default function HealthServices() {
   const [showOptions, setShowOptions] = useState(false);
@@ -27,16 +29,16 @@ export default function HealthServices() {
 
   return (
 <div className="bg-black text-white overflow-hidden">
-  {/* Landing Section */}
+
   <section id="home" className="min-h-screen flex flex-col justify-center py-16">
-    {/* Row 1: Image and Text in 2 columns */}
-    <div className="flex flex-col lg:flex-row justify-center items-center gap-8 lg:gap-16 mb-16 px-4 sm:px-6 lg:px-8">
-      {/* Text Column */}
+
+    <div className="flex flex-col lg:flex-row justify-center items-center gap-8 lg:gap-10 mb-16 px-4 sm:px-6 lg:px-8">
+  
       <div className="text-center lg:text-left max-w-2xl lg:max-w-none lg:w-1/2">
         <h1 className="text-5xl sm:text-6xl lg:text-7xl xl:text-8xl font-black leading-tight mb-4">
           Clinic & Hospitals
         </h1>
-        <h1 className="text-5xl sm:text-6xl lg:text-7xl xl:text-8xl font-black leading-tight mb-8 bg-gradient-to-r from-[#12DBE5] via-[#1F5799] to-[#F20000] bg-clip-text text-transparent">
+        <h1 className="text-5xl sm:text-6xl lg:text-7xl xl:text-8xl font-black leading-tight mb-8 bg-gradient-to-l from-[#12DBE5] via-[#1F5799] to-[#F20000] bg-clip-text text-transparent">
           Branding ThriveRx
         </h1>
       
@@ -52,19 +54,23 @@ export default function HealthServices() {
             <span className={buttonStyles.ripple} />
             <span className="relative z-10">Contact Us</span>
           </a>
-          <img
+          <Image
             src="/assets/services/Agooglepatner.png"
             alt="Landing partner"
+            width={600}
+            height={400}
             className="mt-4 sm:mt-0 w-48 sm:w-40 lg:w-40"
           />
         </div>
       </div>
       
       
-      <div className="flex justify-center items-center lg:w-1/2">
-        <img 
+      <div className="flex  items-center lg:w-1/2">
+        <Image
           src="/assets/services/Adoctor(1).png" 
           alt="Doctor" 
+          width={600}
+          height={400}
           className="w-80 sm:w-96 lg:w-[500px] xl:w-[600px]"
         />
       </div>
@@ -72,7 +78,7 @@ export default function HealthServices() {
 
     
     <div className="px-4 sm:px-6 lg:px-8">
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-5 gap-8 max-w-7xl mx-auto">
+      <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-3 2xl:grid-cols-5 gap-10 max-w-7xl mx-auto">
         {[
           {
             img: "/assets/services/Aicons8-roi-64.png",
@@ -99,7 +105,7 @@ export default function HealthServices() {
             key={index}
             className="bg-gradient-to-br from-gray-900/80 to-gray-800/60 p-8 rounded-3xl flex flex-col items-center text-center hover:transform hover:scale-105 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 border border-gray-700/50"
           >
-            <img src={item.img} className="p-2 w-24 h-24 object-contain mb-6" alt={`icon-${index}`} />
+            <Image src={item.img} width={600} height={400} className="p-2 w-24 h-24 object-contain mb-6" alt={`icon-${index}`} />
             <p className="text-lg text-white/90 font-medium leading-relaxed">{item.text}</p>
           </div>
         ))}
@@ -124,8 +130,10 @@ export default function HealthServices() {
               "/assets/services/BAeonClinic.png",
               "/assets/services/BDiabendocare.png",
             ].map((logo, idx) => (
-              <img 
-                key={idx} 
+              <Image
+                key={idx}
+                width={500}
+                height={200} 
                 src={logo} 
                 alt={`client-${idx}`} 
             
@@ -171,8 +179,8 @@ export default function HealthServices() {
           <h3 className="text-4xl sm:text-5xl lg:text-6xl xl:text-5xl font-black text-center mb-5">
             Patient-Centric Medical Website
           </h3>
-          <img src="/assets/services/DGroup.png" className="w-full max-w-10xl  mb-16 rounded-2xl" alt="Patient Centric" />
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          <Image width={600} height={400} src="/assets/services/DGroup.png" className="w-full max-w-10xl  mb-16 rounded-2xl" alt="Patient Centric" />
+          <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {[
               {
                 img: "/assets/services/Dicons8-web-96.png",
@@ -203,7 +211,7 @@ export default function HealthServices() {
                 key={idx}
                 className="bg-gradient-to-br from-gray-900/80 to-gray-800/60 p-8 rounded-3xl flex flex-col items-center text-center hover:transform hover:scale-105 hover:shadow-2xl hover:shadow-green-500/10 transition-all duration-300 border border-gray-700/50"
               >
-                <img src={item.img} alt={`pcmw-${idx}`} className="p-2 w-20 h-20 object-contain mb-6" />
+                <Image width={600} height={400} src={item.img} alt={`pcmw-${idx}`} className="p-2 w-20 h-20 object-contain mb-6" />
                 <p className="text-lg text-white/90 font-medium">{item.text}</p>
               </div>
             ))}
@@ -227,7 +235,7 @@ export default function HealthServices() {
                 "/assets/services/Emainpg.png",
                 "/assets/services/EZeissIOLMaster700.png",
               ].map((img, idx) => (
-                <img key={idx} src={img} alt={`smm-${idx}`} className="w-80 h-96 object-cover rounded-2xl shadow-2xl" />
+                <Image width={600} height={400} key={idx} src={img} alt={`smm-${idx}`} className="w-80 h-96 object-cover rounded-2xl shadow-2xl" />
               ))}
             </div>
           </div>
@@ -238,21 +246,22 @@ export default function HealthServices() {
       <section className="py-16 lg:py-24 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto text-center">
           <h1 className="text-4xl sm:text-5xl lg:text-6xl xl:text-7xl font-black mb-12">Google Ads, Facebook Ads PPC</h1>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
+          <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
             {[
               { img: "/assets/services/Ficons8-keywords-961.png", text: "Targeted Keywords" },
               { img: "/assets/services/Ficons8-country-1001.png", text: "Local Targeting" },
               { img: "/assets/services/Ficons8-copy-641.png", text: "Ad Copy" },
-              { img: "/assets/services/Ficons8-landing-page-641.png", text: "Landing Page Optimization" },
+             { img: "/assets/services/Ficons8-landing-page-641.png", text: "Wesite SEO" },
               { img: "/assets/services/Ficons8-budget-961.png", text: "Budget & Bidding" },
               { img: "/assets/services/Ficons8-optimization-641.png", text: "Continuous Optimization" },
               { img: "/assets/services/Ficons8-analysis-901.png", text: "Tracking & Analytics for ROI" },
+              { img: "/assets/services/Ficons8-keywords-961.png", text: "Meta marketing" },
             ].map((item, idx) => (
               <div
                 key={idx}
                 className="bg-gradient-to-br from-gray-900/80 to-gray-800/60 p-8 rounded-3xl flex flex-col items-center text-center hover:transform hover:scale-105 hover:shadow-2xl hover:shadow-purple-500/10 transition-all duration-300 border border-gray-700/50"
               >
-                <img src={item.img} alt={`ads-${idx}`} className="p-2 w-20 h-20 object-contain mb-6" />
+                <Image width={600} height={400} src={item.img} alt={`ads-${idx}`} className="p-2 w-20 h-20 object-contain mb-6" />
                 <p className="text-lg text-white/90 font-medium">{item.text}</p>
               </div>
             ))}
@@ -264,29 +273,34 @@ export default function HealthServices() {
       <section id="hrm" className="py-16 lg:py-24 px-4 sm:px-6 lg:px-8">
   <div className="max-w-7xl mx-auto text-center">
     <h2 className="text-4xl sm:text-5xl lg:text-6xl xl:text-7xl font-black mb-12">Healthcare Reputation Management</h2>
-    <div className="flex flex-col lg:flex-row gap-8 lg:gap-12 items-start">
-      {/* Images Section - Better Alignment */}
-      <div className="lg:w-1/2 pt-20">
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
-          <img 
-            src="/assets/services/GBestEyeCareHospitalinVaranasi.png" 
-            alt="HRM 1" 
-            className="rounded-2xl w-full shadow-2xl hover:scale-105 transition-transform duration-300" 
-          />
-          <img 
-            src="/assets/services/GBestEyeCareHospitalinGoa.png" 
-            alt="HRM 2" 
-            className="rounded-2xl w-full shadow-2xl hover:scale-105 transition-transform duration-300 mt-0 sm:mt-8" 
-          />
-        </div>
-      </div>
+<div className="flex flex-col lg:flex-row   w-100% gap-8 lg:gap-12 items-center">
+  <div className="lg:w-1/2 pt-20">
+    <div className="grid grid-cols-2 w-[100%] items-center sm:grid-cols-2 gap-4 sm:gap-6">
+      <Image
+        src="/assets/services/GBestEyeCareHospitalinVaranasi.png"
+        alt="HRM 1"
+        width={600}
+        height={400}
+        className="rounded-2xl  shadow-2xl"
+      />
+      <Image
+        src="/assets/services/GBestEyeCareHospitalinGoa.png"
+        alt="HRM 2"
+        width={600}
+        height={500}
+        className="rounded-2xl  shadow-2xl mt-0 sm:mt-8"
+      />
+    </div>
+  </div>
+
+
       
       
-      <div className="lg:w-1/2  pt-10">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-4 sm:gap-6">
+      <div className="lg:w-1/2  pt-10 ">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-2 gap-4 items-center w-100% sm:gap-6">
           {[
             { img: "/assets/services/Gicons8-roi-642(1).png", text: "Improved ROI" },
-            { img: "/assets/services/Gicons8-reputation-641(1).png", text: "Excellent Patient Experience" },
+            /*{ img: "/assets/services/Gicons8-reputation-641(1).png", text: "Excellent Patient Experience" },*/
             { img: "/assets/services/Gicons8-reliability-68(2).png", text: "Stellar Online Reputation" },
             { img: "/assets/services/Gicons8-monitoring-1001(1).png", text: "Reliability & Credibility" },
             { img: "/assets/services/Gicons8-loyalty-1001(1).png", text: "Monitoring" },
@@ -297,7 +311,7 @@ export default function HealthServices() {
               key={i} 
               className="bg-gradient-to-br from-gray-900/80 to-gray-800/60 p-4 sm:p-6 rounded-2xl flex flex-col items-center text-center hover:transform hover:scale-105 hover:shadow-2xl hover:shadow-purple-500/10 transition-all duration-300 border border-gray-700/50 min-h-[140px] justify-center"
             >
-              <img src={it.img} alt={`hrm-${i}`} className="w-12 h-12 sm:w-14 sm:h-14 object-contain mb-3" />
+              <Image width={600} height={400} src={it.img} alt={`hrm-${i}`} className="w-12 h-12 sm:w-14 sm:h-14 object-contain mb-3" />
               <p className="text-white/90 font-medium text-sm sm:text-base">{it.text}</p>
             </div>
           ))}
@@ -307,17 +321,39 @@ export default function HealthServices() {
   </div>
 </section>
 
-     
-      <section id="featured" className=" px-4 sm:px-6 lg:px-8 text-center">
-        <div className="max-w-7xl mx-auto">
-          <h2 className="text-4xl sm:text-5xl lg:text-6xl xl:text-7xl font-black mb-12">Featured On</h2>
-          <div className="flex flex-wrap justify-center gap-12 lg:gap-16 items-center">
-            <img src="/assets/services/HTOI.png" alt="TOI" className="w-48 lg:w-56 xl:w-64" />
-            <img src="/assets/services/HHT2.png" alt="HT" className="w-48 lg:w-56 xl:w-64" />
-            <img src="/assets/services/HTI.png" alt="Featured" className="w-48 lg:w-56 xl:w-64" />
-          </div>
-        </div>
-      </section>
+    
+
+<section id="featured" className="px-4 sm:px-6 lg:px-8 text-center">
+  <div className="max-w-7xl mx-auto">
+    <h2 className="text-4xl sm:text-5xl lg:text-6xl xl:text-7xl font-black mb-12">
+      Featured On
+    </h2>
+    <div className="flex flex-wrap justify-center gap-12 lg:gap-16 items-center">
+      <Image
+        src="/assets/services/HTOI.png"
+        alt="TOI"
+        width={256}
+        height={128}
+        className="w-48 lg:w-56 xl:w-64"
+      />
+      <Image
+        src="/assets/services/HHT2.png"
+        alt="HT"
+        width={256}
+        height={128}
+        className="w-48 lg:w-56 xl:w-64"
+      />
+      <Image
+        src="/assets/services/HTI.png"
+        alt="Featured"
+        width={256}
+        height={128}
+        className="w-48 lg:w-56 xl:w-64"
+      />
+    </div>
+  </div>
+</section>
+
 
     
       
