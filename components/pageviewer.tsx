@@ -7,19 +7,7 @@ export default function PageViewer() {
   return (
     <section id="pageviewer" className="relative min-h-screen text-white">
       
-      <div className="absolute inset-0 z-0">
-        <Galaxy 
-          transparent={true}
-          hueShift={180}
-          glowIntensity={0.5}
-          saturation={0.3}
-          mouseInteraction={true}
-          mouseRepulsion={true}
-          twinkleIntensity={0.4}
-          rotationSpeed={0.05}
-          speed={1.0}
-        />
-      </div>
+     
 
       
       <div className="relative z-10 w-full px-3 py-5">

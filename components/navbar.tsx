@@ -43,19 +43,7 @@ export default function Navbar({ onLoginClick }: NavbarProps) {
 
   return (
     <nav className="sticky top-0 z-50 text-white px-6 py-4 flex items-center justify-between">
-      <div className="absolute inset-0 z-0">
-        <Galaxy 
-          transparent={true}
-          hueShift={180}
-          glowIntensity={0.3}
-          saturation={0.2}
-          mouseInteraction={false}
-          mouseRepulsion={false}
-          twinkleIntensity={0.3}
-          rotationSpeed={0.03}
-          speed={0.8}
-        />
-      </div>
+     
 
       {/* Desktop Links  and routing needs to be done */}
       <ul className="hidden md:flex gap-6 items-center text-lg">
