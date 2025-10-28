@@ -1,28 +1,49 @@
-"use client";
+'use client';
 
-import { useState } from "react";
-import Image from "next/image";
+import React, { useState } from 'react';
 import Link from "next/link";
-import { buttonStyles , buttonHandlers} from "@/lib/theme/buttonstyle";
+import Image from "next/image";
+import { buttonStyles, buttonHandlers } from "@/lib/theme/buttonstyle";
 import { GRADIENTS } from "@/lib/theme/colours";
+import Galaxy from '@/components/Galaxy/Galaxy';
 
-export default function Navbar() {
+interface NavbarProps {
+  onLoginClick: () => void;
+}
+
+export default function Navbar({ onLoginClick }: NavbarProps) {
   const [isNavOpen, setIsNavOpen] = useState(false);
 
   const toggleNav = () => setIsNavOpen(!isNavOpen);
 
+  const handleLoginClick = (e: React.MouseEvent<HTMLButtonElement>) => {
+    if (buttonHandlers.onClick) {
+      buttonHandlers.onClick(e);
+    }
+    
+    if (onLoginClick) { 
+      onLoginClick();
+    }
+    
+    if (isNavOpen) {
+      toggleNav();
+    }
+  };
+
+  const smoothScroll = (e: React.MouseEvent<HTMLAnchorElement>, id: string) => {
+    e.preventDefault();
+    const element = document.getElementById(id);
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+    if (isNavOpen) {
+      toggleNav();
+    }
+  };
+
   return (
-    <nav className="sticky top-0 z-50 bg-black text-white px-6 py-4 flex items-center justify-between">
-      {/* Logo */}
-      <Link href="/">
-        <Image
-          src="/assets/general/ThriberTransparent.png"
-          alt="Thriber Logo"
-          width={80}
-          height={50}
-          className="object-contain"
-        />
-      </Link>
+    <nav className="sticky top-0 z-50 text-white px-6 py-4 flex items-center justify-between">
+     
 
       {/* Desktop Links  and routing needs to be done */}
       <ul className="hidden md:flex gap-6 items-center text-lg">
@@ -57,9 +78,8 @@ export default function Navbar() {
             </a>
           </div>
 
-      {/* Mobile Menu */}
       {isNavOpen && (
-        <ul className="absolute top-20 right-4 bg-black text-white rounded-xl flex flex-col gap-4 p-6 w-60 md:hidden">
+        <ul className="absolute top-20 right-4 bg-black/90 backdrop-blur-md text-white rounded-xl flex flex-col gap-4 p-6 w-60 md:hidden z-50 border border-gray-700">
           <li>
           < Link href="/" className="hover:text-blue-600 transition">HOME</Link>
           </li>
@@ -70,12 +90,11 @@ export default function Navbar() {
             <a href="" className="hover:text-blue-600 transition" onClick={toggleNav}>Contact Us</a>
           </li>
           <li>
-            <a href="/services" className="hover:text-blue-600 transition" onClick={toggleNav}>Services</a>
+            <a href="/services" className="hover:text-blue-400 transition" onClick={toggleNav}>Services</a>
           </li>
           <li>
-            <a href="/ThriveRx" className="hover:text-blue-600 transition" onClick={toggleNav}>ThriveRx</a>
+            <a href="/ThriveRx" className="hover:text-blue-400 transition" onClick={toggleNav}>ThriveRx</a>
           </li>
-         
         </ul>
       )}
     </nav>

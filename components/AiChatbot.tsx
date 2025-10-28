@@ -3,13 +3,16 @@
 import React from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
+import Galaxy from '@/components/Galaxy/Galaxy';
 
 export default function LandingPage() {
   return (
-    <div className="py-30 sm:py-7 flex items-center justify-center bg-black relative">
-      <div className="w-11/12 max-w-6xl bg-white rounded-2xl shadow-xl border-2 border-gray-300 flex flex-col md:flex-row overflow-hidden">
+    <div className="relative min-h-screen py-30 sm:py-7 flex items-center justify-center overflow-hidden">
+     
+     
+
+      <div className="relative z-10 w-11/12 max-w-6xl bg-white/95 backdrop-blur-sm rounded-2xl shadow-xl border-2 border-gray-300 flex flex-col md:flex-row overflow-hidden">
         
-        {/* Left Section - Text Content */}
         <div className="md:w-1/2 bg-gradient-to-br from-gray-900 to-gray-800 flex items-center justify-center p-8 md:p-12">
           <div className="text-center md:text-left space-y-6 max-w-md">
             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black text-white leading-tight">
@@ -21,7 +24,6 @@ export default function LandingPage() {
           </div>
         </div>
 
-        {/* Right Section - Light Grey with Character */}
         <div className="md:w-1/2 bg-[#dadada] flex flex-col items-center justify-center p-6 md:p-8">
           <div className="relative w-full h-[250px] md:h-[400px] mb-6">
             <Image
