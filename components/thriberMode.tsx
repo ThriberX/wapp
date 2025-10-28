@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { LINKS } from "@/lib/constants/links"; 
-import { GRADIENT_CLASSES } from "@/lib/theme/colours";
+import { GRADIENT_CLASSES } from "@/lib/theme/colours" ;
 
 export default function ThriberMode() {
   return (
