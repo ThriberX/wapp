@@ -1,10 +1,10 @@
 'use client';
 
+import Image from "next/image";
 import { useEffect, useState } from "react";
 import { db } from '@/lib/firebase'; 
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
-import { getAIQuizAdvice } from './Interface';
-import Galaxy from '@/components/Galaxy/Galaxy'; 
+import { collection, addDoc } from 'firebase/firestore';
+import { getAIQuizAdvice } from './Interface'; 
 
 export default function QuestionPage() {
   const [tree, setTree] = useState<any>(null);
@@ -17,11 +17,9 @@ export default function QuestionPage() {
   useEffect(() => {
     const newSessionId = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     setSessionId(newSessionId);
+    console.log("Quiz Session Started:", newSessionId);
 
-    fetch("/tree.json")
-      .then((res) => res.json())
-      .then(setTree)
-      .catch((err) => console.error('Failed to load tree.json:', err));
+    fetch("/tree.json").then((res) => res.json().then(setTree));
   }, []);
 
   const handleClick = async (options: { label: string; next: string }) => {
@@ -47,94 +45,73 @@ export default function QuestionPage() {
 
   const saveToFirebase = async (selectedAnswer: string, allAnswers: string[]) => {
     try {
+      console.log("Saving answer to Firebase...");
       const docRef = await addDoc(collection(db, "quiz_answers"), {
         sessionId: sessionId,
         answer: selectedAnswer,
         allAnswers: allAnswers,
         questionId: currentId,
-        timestamp: serverTimestamp()
+        timestamp: new Date()
       });
-      console.log("Answer saved! Doc ID:", docRef.id);
-    } catch (error: any) {
+      console.log("Answer saved! Session:", sessionId, "Doc ID:", docRef.id);
+    } catch (error) {
       console.error("Firebase error:", error);
     }
   };
 
   if (!tree) {
-    return (
-      <div className="bg-black min-h-screen flex items-center justify-center">
-        <div className="text-white text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
-          <p>Loading quiz...</p>
-        </div>
-      </div>
-    );
+    return <div className="text-white text-center"> Loading....... ....</div>;
   }
     
   const currentNode = tree[currentId];
 
   return (
-    <div className="relative min-h-screen w-full overflow-hidden">
-   
-      <div className="fixed inset-0 z-0">
-        <Galaxy 
-          transparent={true}
-          hueShift={180}
-          glowIntensity={0.5}
-          saturation={0.3}
-          mouseInteraction={true}
-          mouseRepulsion={true}
-          twinkleIntensity={0.4}
-          rotationSpeed={0.05}
-          speed={1.0}
-        />
+    <div className=" bg-black min-h-screen w-full bg-cover bg-center bg-no-repeat flex items-center justify-center relative" style={{ backgroundImage: `url('/images/bg.jpg')` }}>
+      <div className="absolute top-5 left-5 z-10">
       </div>
-
-     
-      <div className="relative z-10 min-h-screen flex items-center justify-center p-4">
-        <div className="bg-white/10 backdrop-blur-md border border-white/30 rounded-xl shadow-xl px-8 py-12 w-[90%] max-w-md text-center space-y-8 flex flex-col items-center justify-center min-h-[400px]">
-          {currentNode.result ? (
-            <>
-              <h1 className="text-xl font-semibold text-white leading-snug">
-                Your Assessment Result
-              </h1>
-              <p className="text-cyan-200 text-lg">{currentNode.result}</p>
-              
-              {isLoadingAI ? (
-                <div className="mt-4 p-4 rounded-lg bg-gray-800/50 backdrop-blur-sm border border-gray-700">
-                  <p className="text-white">Getting AI suggestions...</p>
-                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-white mx-auto mt-2"></div>
-                </div>
-              ) : claudeResponse && (
-                <div className="mt-4 p-4 rounded-lg bg-gray-800/50 backdrop-blur-sm border border-gray-700">
-                  <p className="text-white mt-2 leading-relaxed">{claudeResponse}</p>
-                </div>
-              )}
-            </>
-          ) : (
-            <>
-              <h1 className="text-2xl font-semibold text-white leading-snug">
-                {currentNode.question}
-              </h1>
-              <div className="flex flex-col gap-6 w-full px-4">
-                {currentNode.options.map((option: any, index: number) =>
-                  <button
-                    key={index}
-                    onClick={() => handleClick(option)}
-                    className="relative group w-full active:scale-95 transform transition-all duration-150"
-                  >
-                    <div className={`absolute -inset-1 ${option.label === "Yes" ? "bg-[#00b7ff]" : "bg-red-500"} rounded-full blur opacity-60 group-hover:opacity-80 group-active:opacity-100 transition duration-200`}></div>
-                    <div className={`relative w-full py-4 bg-black rounded-full border-2 ${option.label === "Yes" ? "border-cyan-400" : "border-red-400"} font-bold text-lg tracking-wider hover:bg-opacity-20 active:bg-opacity-40 transition duration-200`}>
-                      <span className={`${option.label === "Yes" ? "text-cyan-300" : "text-red-300"} drop-shadow-[0_0_10px_rgba(255,255,255,0.8)] group-active:drop-shadow-[0_0_15px_rgba(255,255,255,1)]`}>
-                        {option.label.toUpperCase()} !
-                      </span>
-                    </div>
-                  </button>
-                )}
+      
+      <div className="bg-white/10 backdrop-blur-md border border-white/30 rounded-xl shadow-xl px-8 py-12 w-[90%] max-w-md text-center space-y-8 flex flex-col items-center justify-center min-h-[400px]">
+        {currentNode.result ? (
+          <>
+            <h1 className="text-xl font-semibold text-white leading-snug">
+              Your Assessment Result
+            </h1>
+            <p className="text-cyan-200 text-lg">{currentNode.result}</p>
+            
+            {isLoadingAI ? (
+              <div className="mt-4 p-4 rounded-lg bg-gray-800/50 backdrop-blur-sm border border-gray-700">
+                <p className="text-white">Getting AI suggestions...</p>
+                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-white mx-auto mt-2"></div>
               </div>
-            </>
-          )} 
-        </div>
+            ) : claudeResponse && (
+              <div className="mt-4 p-4 rounded-lg bg-gray-800/50 backdrop-blur-sm border border-gray-700">
+                <p className="text-white mt-2 leading-relaxed">{claudeResponse}</p>
+              </div>
+            )}
+          </>
+        ) : (
+          <>
+            <h1 className="text-2xl font-semibold text-white leading-snug">
+              {currentNode.question}
+            </h1>
+            <div className="flex flex-col gap-6 w-full px-4">
+              {currentNode.options.map((option: any, index: number) =>
+                <button
+                  key={index}
+                  onClick={() => handleClick(option)}
+                  className="relative group w-full active:scale-95 transform transition-all duration-150"
+                >
+                  <div className={`absolute -inset-1 ${option.label === "Yes" ? "bg-[#00b7ff]" : "bg-red-500"} rounded-full blur opacity-60 group-hover:opacity-80 group-active:opacity-100 transition duration-200`}></div>
+                  <div className={`relative w-full py-4 bg-black rounded-full border-2 ${option.label === "Yes" ? "border-cyan-400" : "border-red-400"} font-bold text-lg tracking-wider hover:bg-opacity-20 active:bg-opacity-40 transition duration-200`}>
+                    <span className={`${option.label === "Yes" ? "text-cyan-300" : "text-red-300"} drop-shadow-[0_0_10px_rgba(255,255,255,0.8)] group-active:drop-shadow-[0_0_15px_rgba(255,255,255,1)]`}>
+                      {option.label.toUpperCase()} !
+                    </span>
+                  </div>
+                </button>
+              )}
+            </div>
+          </>
+        )} 
       </div>
     </div>
   );

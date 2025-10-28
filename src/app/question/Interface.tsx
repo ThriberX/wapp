@@ -4,14 +4,13 @@ export interface AIResponse {
   response?: string;
   text?: string;
   result?: string; 
-  modelUsed?: string;
+  modelUsed?: string; 
   error?: string; 
 }
 
 export class AIInterface {
   private static instance: AIInterface;
-  
-  private models = ['/api/ai/claude', '/api/ai/gemini', '/api/ai/openai']; 
+  private models = ['/api/claude', '/api/gemini', '/api/openai']; 
   
   public static getInstance(): AIInterface {
     if (!AIInterface.instance) {
@@ -21,6 +20,7 @@ export class AIInterface {
   }
 
   async chatWithAI(prompt: string): Promise<string> {
+   
     for (const endpoint of this.models) {
       try {
         console.log(`Trying: ${endpoint}`);
