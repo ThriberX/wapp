@@ -1,25 +1,21 @@
-// Regex patterns
 export const VALIDATION_REGEX = {
   EMAIL: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
   PHONE: /^\+?[1-9]\d{6,14}$/,
 } as const;
 
-// Validation rules
 export const VALIDATION_RULES = {
   PASSWORD_MIN_LENGTH: 6,
   NAME_MIN_LENGTH: 2,
   OTP_LENGTH: 6,
 } as const;
 
-// Timeouts (in milliseconds)
 export const TIMEOUTS = {
   SUCCESS_REDIRECT: 800,
   SUCCESS_MESSAGE: 3000,
 } as const;
 
-// Firebase error messages mapping
 export const FIREBASE_ERROR_MESSAGES: Record<string, string> = {
-  // Login errors
+
   'auth/invalid-email': 'Invalid email or password. Please check your credentials.',
   'auth/user-not-found': 'Invalid email or password. Please check your credentials.',
   'auth/wrong-password': 'Invalid email or password. Please check your credentials.',
@@ -28,14 +24,12 @@ export const FIREBASE_ERROR_MESSAGES: Record<string, string> = {
   'auth/too-many-requests': 'Too many failed attempts. Please try again later.',
   'auth/network-request-failed': 'Network error. Please check your internet connection.',
   
-  // Signup errors
   'auth/email-already-in-use': 'This email address is already registered.',
   'auth/weak-password': 'Password is too weak. Must be at least 6 characters.',
 } as const;
 
-// UI Messages
 export const UI_MESSAGES = {
-  // Success messages
+  
   LOGIN_SUCCESS: 'Login successful! Welcome back!',
   SIGNUP_SUCCESS: 'Account created successfully! Please check your email for the verification link before logging in.',
   EMAIL_VERIFIED_SUCCESS: 'Email verified! Login successful!',
@@ -44,7 +38,6 @@ export const UI_MESSAGES = {
   PHONE_VERIFIED_SUCCESS: 'Phone number verified successfully!',
   OTP_SENT_SUCCESS: 'OTP sent to your phone number!',
   
-  // Error messages
   INVALID_EMAIL: 'Please enter a valid email address (e.g. user@example.com)',
   INVALID_PHONE: 'Please enter a valid phone number with country code (e.g., +91 XXXXXXXXXX)',
   PASSWORD_TOO_SHORT: 'Password must be at least 6 characters long',
@@ -63,7 +56,6 @@ export const UI_MESSAGES = {
   UNEXPECTED_ERROR: 'An unexpected error occurred. Please try again.',
 } as const;
 
-// Placeholder text
 export const PLACEHOLDERS = {
   PHONE: '+91 XXXXXXXXXX',
   OTP: 'Enter 6-digit OTP',
