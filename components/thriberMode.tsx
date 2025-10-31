@@ -3,19 +3,34 @@
 import Image from "next/image";
 import Link from "next/link";
 import { LINKS } from "@/lib/constants/links"; 
-import { GRADIENT_CLASSES } from "@/lib/theme/colours" ;
+import { GRADIENT_CLASSES } from "@/lib/theme/colours";
+import Galaxy from '@/components/Galaxy/Galaxy';
 
 export default function ThriberMode() {
   return (
-    <section id="thribermode" className="galaxy-bg text-white py-16 lg:py-20">
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Header Section */}
+    <section id="thriberMode" className="relative text-white py-16 lg:py-20 min-h-screen">
+     
+      <div className="absolute inset-0 z-0">
+        <Galaxy 
+          transparent={true}
+          hueShift={180}
+          glowIntensity={0.5}
+          saturation={0.3}
+          mouseInteraction={true}
+          mouseRepulsion={true}
+          twinkleIntensity={0.4}
+          rotationSpeed={0.05}
+          speed={1.0}
+        />
+      </div>
+
+      
+      <div className="relative z-10 container mx-auto px-4 sm:px-6 lg:px-8">
+      
         <div className="text-center max-w-6xl mx-auto mb-12 lg:mb-16">
           <h1 className="text-4xl sm:text-5xl lg:text-6xl xl:text-[80px] font-bold mb-6 leading-tight">
             What is{" "}
-          
-              Thriber Mode?
-       
+            Thriber Mode?
           </h1>
           
           <p className="text-gray-300 text-lg sm:text-xl lg:text-3xl font-medium leading-relaxed max-w-5xl mx-auto">
@@ -25,12 +40,12 @@ export default function ThriberMode() {
           </p>
         </div>
 
-        {/* Features Grid - Larger cards with smaller images */}
+        
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-2 gap-8 lg:gap-20 max-w-6xl mx-auto">
-          {/* Digital Branding */}
-          <div className="group relative bg-gradient-to-br from-gray-900/50 to-gray-800/30 rounded-2xl p-8 lg:p-10 hover:from-gray-900/70 hover:to-gray-800/50 transition-all duration-300 hover:scale-105 hover:shadow-2xl hover:shadow-blue-500/10 border border-gray-700/50 min-h-[400px] flex flex-col">
+         
+          <div className="group relative bg-gradient-to-br from-gray-900/50 to-gray-800/30 rounded-2xl p-8 lg:p-10 hover:from-gray-900/70 hover:to-gray-800/50 transition-all duration-300 hover:scale-105 hover:shadow-2xl hover:shadow-blue-500/10 border border-gray-700/50 min-h-[400px] flex flex-col backdrop-blur-sm">
             <div className="flex flex-col items-center text-center flex-1">
-              {/* Smaller Image */}
+              
               <div className="relative w-full max-w-[180px] h-[140px] lg:h-[160px] mb-6 lg:mb-8 overflow-hidden rounded-xl">
                 <Image 
                   src="/assets/thriberModeImages/branding.png" 
@@ -61,10 +76,10 @@ export default function ThriberMode() {
             </div>
           </div>
 
-          {/* Customer Reach */}
-          <div className="group relative bg-gradient-to-br from-gray-900/50 to-gray-800/30 rounded-2xl p-8 lg:p-10 hover:from-gray-900/70 hover:to-gray-800/50 transition-all duration-300 hover:scale-105 hover:shadow-2xl hover:shadow-purple-500/10 border border-gray-700/50 min-h-[400px] flex flex-col">
+        
+          <div className="group relative bg-gradient-to-br from-gray-900/50 to-gray-800/30 rounded-2xl p-8 lg:p-10 hover:from-gray-900/70 hover:to-gray-800/50 transition-all duration-300 hover:scale-105 hover:shadow-2xl hover:shadow-purple-500/10 border border-gray-700/50 min-h-[400px] flex flex-col backdrop-blur-sm">
             <div className="flex flex-col items-center text-center flex-1">
-              {/* Smaller Image */}
+              
               <div className="relative w-full max-w-[180px] h-[140px] lg:h-[160px] mb-6 lg:mb-8 overflow-hidden rounded-xl">
                 <Image
                   src="/assets/thriberModeImages/networking.png"
@@ -94,10 +109,10 @@ export default function ThriberMode() {
             </div>
           </div>
 
-          {/* Engagement */}
-          <div className="group relative bg-gradient-to-br from-gray-900/50 to-gray-800/30 rounded-2xl p-8 lg:p-10 hover:from-gray-900/70 hover:to-gray-800/50 transition-all duration-300 hover:scale-105 hover:shadow-2xl hover:shadow-green-500/10 border border-gray-700/50 min-h-[400px] flex flex-col">
+        
+          <div className="group relative bg-gradient-to-br from-gray-900/50 to-gray-800/30 rounded-2xl p-8 lg:p-10 hover:from-gray-900/70 hover:to-gray-800/50 transition-all duration-300 hover:scale-105 hover:shadow-2xl hover:shadow-green-500/10 border border-gray-700/50 min-h-[400px] flex flex-col backdrop-blur-sm">
             <div className="flex flex-col items-center text-center flex-1">
-              {/* Smaller Image */}
+           
               <div className="relative w-full max-w-[180px] h-[140px] lg:h-[160px] mb-6 lg:mb-8 overflow-hidden rounded-xl">
                 <Image
                   src="/assets/thriberModeImages/engage.png"
@@ -127,10 +142,9 @@ export default function ThriberMode() {
             </div>
           </div>
 
-          {/* Analysis */}
-          <div className="group relative bg-gradient-to-br from-gray-900/50 to-gray-800/30 rounded-2xl p-8 lg:p-10 hover:from-gray-900/70 hover:to-gray-800/50 transition-all duration-300 hover:scale-105 hover:shadow-2xl hover:shadow-orange-500/10 border border-gray-700/50 min-h-[400px] flex flex-col">
+          <div className="group relative bg-gradient-to-br from-gray-900/50 to-gray-800/30 rounded-2xl p-8 lg:p-10 hover:from-gray-900/70 hover:to-gray-800/50 transition-all duration-300 hover:scale-105 hover:shadow-2xl hover:shadow-orange-500/10 border border-gray-700/50 min-h-[400px] flex flex-col backdrop-blur-sm">
             <div className="flex flex-col items-center text-center flex-1">
-              {/* Smaller Image */}
+       
               <div className="relative w-full max-w-[180px] h-[140px] lg:h-[160px] mb-6 lg:mb-8 overflow-hidden rounded-xl">
                 <Image
                   src="/assets/thriberModeImages/chart.png"
