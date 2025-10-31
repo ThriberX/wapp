@@ -1,6 +1,6 @@
 'use client'; 
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation'; 
 import { 
   signInWithEmailAndPassword, 
@@ -15,85 +15,92 @@ import {
   getAuth,
 } from 'firebase/auth';
 import { auth } from '@/src/firebase'; 
-
-declare global {
-    interface Window {
-        recaptchaVerifier: RecaptchaVerifier | null;
-    }
-}
+import {
+  VALIDATION_REGEX,
+  VALIDATION_RULES,
+  TIMEOUTS,
+  FIREBASE_ERROR_MESSAGES,
+  UI_MESSAGES,
+  PLACEHOLDERS,
+} from '@/lib/constants/authConstants';
 
 const isFirebaseError = (err: any): err is { code: string } => {
-    return err && typeof err === 'object' && 'code' in err && typeof (err as { code: string }).code === 'string';
+  return err && typeof err === 'object' && 'code' in err && typeof (err as { code: string }).code === 'string';
 };
 
-const initRecaptcha = (containerId: string) => {
-  if (typeof window === 'undefined') return;
-  
-  if (window.recaptchaVerifier) return; 
-  
-  try {
-    const verifier = new RecaptchaVerifier(getAuth(), containerId, {
-      'size': 'invisible',
-      'callback': (response: any) => { 
-        console.log('reCAPTCHA solved');
-      },
-      'expired-callback': () => {
-        console.log('reCAPTCHA expired, please try again.');
-      }
-    });
-    
-    window.recaptchaVerifier = verifier;
+const getFirebaseErrorMessage = (errorCode: string, defaultMessage: string): string => {
+  return FIREBASE_ERROR_MESSAGES[errorCode] || defaultMessage;
+};
 
-    verifier.render().then((widgetId) => {
-        console.log('reCAPTCHA initialized with widget ID:', widgetId);
-    });
-    
-    return verifier;
-
-  } catch (e) {
-    console.error("Error initializing reCAPTCHA:", e);
-    return null;
+const handleError = (err: unknown, setError: (msg: string) => void, defaultMessage: string) => {
+  if (isFirebaseError(err)) {
+    const errorMessage = getFirebaseErrorMessage(err.code, defaultMessage);
+    setError(errorMessage);
+  } else {
+    setError(UI_MESSAGES.UNEXPECTED_ERROR);
   }
 };
 
 interface LoginProps {
-    onClose: () => void; 
-    initialShow?: boolean;
+  onClose: () => void; 
+  initialShow?: boolean;
 }
 
+interface FormState {
+  email: string;
+  password: string;
+  fullName: string;
+  signupEmail: string;
+  signupPassword: string;
+  confirmPassword: string;
+  phoneNumber: string;
+  otpCode: string;
+  emailVerified: boolean;
+  phoneVerified: boolean;
+  showOTPInput: boolean;
+  unverifiedEmail: string;
+  tempPassword: string;
+}
+
+const INITIAL_FORM_STATE: FormState = {
+  email: '',
+  password: '',
+  fullName: '',
+  signupEmail: '',
+  signupPassword: '',
+  confirmPassword: '',
+  phoneNumber: '',
+  otpCode: '',
+  emailVerified: false,
+  phoneVerified: false,
+  showOTPInput: false,
+  unverifiedEmail: '',
+  tempPassword: '',
+};
+
 const Login: React.FC<LoginProps> = ({ onClose }) => {
-  
   const router = useRouter(); 
+  const recaptchaVerifierRef = useRef<RecaptchaVerifier | null>(null);
 
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-
-  const [fullName, setFullName] = useState('');
-  const [signupEmail, setSignupEmail] = useState('');
-  const [signupPassword, setSignupPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [phoneNumber, setPhoneNumber] = useState('');
-  const [otpCode, setOtpCode] = useState('');
+  const [formState, setFormState] = useState<FormState>(INITIAL_FORM_STATE);
   
-  const [emailVerified, setEmailVerified] = useState(false);
-  const [phoneVerified, setPhoneVerified] = useState(false);
-  const [emailVerifying, setEmailVerifying] = useState(false);
   const [emailVerificationSent, setEmailVerificationSent] = useState(false);
-  const [sendingOTP, setSendingOTP] = useState(false);
-  const [verifyingOTP, setVerifyingOTP] = useState(false);
-  const [showOTPInput, setShowOTPInput] = useState(false);
-  
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [resendLoading, setResendLoading] = useState(false);
-  
+  const [emailVerifying, setEmailVerifying] = useState(false);
+  const [sendingOTP, setSendingOTP] = useState(false);
+  const [verifyingOTP, setVerifyingOTP] = useState(false);
   const [showSignupForm, setShowSignupForm] = useState(false);
   const [showEmailVerification, setShowEmailVerification] = useState(false);
-  const [unverifiedEmail, setUnverifiedEmail] = useState('');
-  const [tempPassword, setTempPassword] = useState('');
 
   const [confirmationResult, setConfirmationResult] = useState<ConfirmationResult | null>(null);
+
+ 
+  const updateFormField = useCallback(<K extends keyof FormState>(field: K, value: FormState[K]) => {
+    setFormState(prev => ({ ...prev, [field]: value }));
+  }, []);
 
   const clearErrors = useCallback(() => {
     setError(null);
@@ -101,19 +108,8 @@ const Login: React.FC<LoginProps> = ({ onClose }) => {
   }, []);
 
   const clearAllForms = useCallback(() => {
-    setEmail('');
-    setPassword('');
-    setFullName('');
-    setSignupEmail('');
-    setSignupPassword('');
-    setConfirmPassword('');
-    setPhoneNumber('');
-    setOtpCode('');
-    setEmailVerified(false);
-    setPhoneVerified(false);
-    setShowOTPInput(false);
-    setUnverifiedEmail('');
-    setTempPassword('');
+    setFormState(INITIAL_FORM_STATE);
+    setEmailVerificationSent(false);
     clearErrors();
   }, [clearErrors]);
 
@@ -121,7 +117,6 @@ const Login: React.FC<LoginProps> = ({ onClose }) => {
     clearAllForms();
     onClose(); 
   }, [clearAllForms, onClose]);
-
 
   const toggleToSignup = useCallback(() => {
     setShowSignupForm(true);
@@ -135,94 +130,110 @@ const Login: React.FC<LoginProps> = ({ onClose }) => {
 
   const backToLogin = useCallback(() => {
     setShowEmailVerification(false);
-    setUnverifiedEmail('');
-    setTempPassword('');
+    updateFormField('unverifiedEmail', '');
+    updateFormField('tempPassword', '');
     clearErrors();
-  }, [clearErrors]);
+  }, [clearErrors, updateFormField]);
+
+  const initRecaptcha = useCallback((containerId: string) => {
+    if (typeof window === 'undefined') return;
+    
+    if (recaptchaVerifierRef.current) return; 
+    
+    try {
+      const verifier = new RecaptchaVerifier(getAuth(), containerId, {
+        'size': 'invisible',
+        'callback': () => { 
+          console.log('reCAPTCHA solved');
+        },
+        'expired-callback': () => {
+          console.log('reCAPTCHA expired, please try again.');
+        }
+      });
+      
+      recaptchaVerifierRef.current = verifier;
+
+      verifier.render().then((widgetId) => {
+        console.log('reCAPTCHA initialized with widget ID:', widgetId);
+      });
+      
+      return verifier;
+
+    } catch (e) {
+      console.error("Error initializing reCAPTCHA:", e);
+      setError(UI_MESSAGES.RECAPTCHA_FAILED);
+      return null;
+    }
+  }, []);
 
   useEffect(() => {
- 
     if (showSignupForm) {
       initRecaptcha('recaptcha-container');
     }
-  }, [showSignupForm]);
+
+    return () => {
+      if (recaptchaVerifierRef.current) {
+        try {
+          recaptchaVerifierRef.current.clear();
+        } catch (e) {
+          console.error('Error clearing reCAPTCHA:', e);
+        }
+        recaptchaVerifierRef.current = null;
+      }
+    };
+  }, [showSignupForm, initRecaptcha]);
 
 
   const login = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     clearErrors();
 
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      setError('Please enter a valid email address (e.g. user@example.com)');
+    if (!VALIDATION_REGEX.EMAIL.test(formState.email)) {
+      setError(UI_MESSAGES.INVALID_EMAIL);
       return;
     }
     
-    if (password.length < 6) {
-      setError('Password must be at least 6 characters long');
+    if (formState.password.length < VALIDATION_RULES.PASSWORD_MIN_LENGTH) {
+      setError(UI_MESSAGES.PASSWORD_TOO_SHORT);
       return;
     }
     
     setLoading(true);
     
     try {
-      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      const userCredential = await signInWithEmailAndPassword(auth, formState.email, formState.password);
       const user: User = userCredential.user;
       await user.reload();
 
       if (!user.emailVerified) {
-        setUnverifiedEmail(user.email ?? ''); 
-        setTempPassword(password);
+        updateFormField('unverifiedEmail', user.email ?? '');
+        updateFormField('tempPassword', formState.password);
         await signOut(auth); 
         setShowEmailVerification(true);
         setLoading(false);
         return;
       }
       
-      setSuccess('Login successful! Welcome back!');
-      setEmail('');
-      setPassword('');
+      setSuccess(UI_MESSAGES.LOGIN_SUCCESS);
+      updateFormField('email', '');
+      updateFormField('password', '');
       
       setTimeout(() => {
         closePopup(); 
         router.push('/');
-      }, 1500);
+      }, TIMEOUTS.SUCCESS_REDIRECT);
       
     } catch (err: unknown) {
-      console.error('Login failed:', err);
-      
-      if (isFirebaseError(err)) { 
-        switch (err.code) {
-          case 'auth/invalid-email':
-          case 'auth/user-not-found':
-          case 'auth/wrong-password':
-          case 'auth/invalid-credential':
-            setError('Invalid email or password. Please check your credentials.');
-            break;
-          case 'auth/user-disabled':
-            setError('This user account has been disabled.');
-            break;
-          case 'auth/too-many-requests':
-            setError('Too many failed attempts. Please try again later.');
-            break;
-          case 'auth/network-request-failed':
-            setError('Network error. Please check your internet connection.');
-            break;
-          default:
-            setError('Login failed. Please try again.');
-        }
-      } else {
-        setError('An unexpected error occurred during login.');
-      }
+      handleError(err, setError, UI_MESSAGES.LOGIN_FAILED);
     } finally {
       setLoading(false);
     }
   };
 
+ 
   const sendEmailVerificationCode = async () => {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(signupEmail)) {
-      setError('Please enter a valid email address');
+    if (!VALIDATION_REGEX.EMAIL.test(formState.signupEmail)) {
+      setError(UI_MESSAGES.INVALID_EMAIL);
       return;
     }
 
@@ -230,35 +241,25 @@ const Login: React.FC<LoginProps> = ({ onClose }) => {
     clearErrors();
 
     try {
-      const tempUserCredential = await createUserWithEmailAndPassword(auth, signupEmail, 'TempPass123!@#');
+      const tempUserCredential = await createUserWithEmailAndPassword(auth, formState.signupEmail, 'TempPass123!@#');
       await sendEmailVerification(tempUserCredential.user);
       await signOut(auth); 
       
       setEmailVerificationSent(true);
-      setSuccess('Verification email sent! Please check your inbox.');
+      setSuccess(UI_MESSAGES.EMAIL_VERIFICATION_SENT);
       
     } catch (err: unknown) { 
-      if (isFirebaseError(err)) { 
-        if (err.code === 'auth/email-already-in-use') {
-          setError('This email is already registered.');
-        } else {
-          console.error('Email verification error:', err);
-          setError('Failed to send verification email. Please try logging in if you have already signed up.');
-        }
-      } else {
-        setError('An unexpected error occurred during email verification.');
-      }
+      handleError(err, setError, UI_MESSAGES.SIGNUP_FAILED);
     } finally {
       setEmailVerifying(false);
     }
   };
 
   const sendPhoneOTP = async () => {
-    const phoneRegex = /^\+?[1-9]\d{6,14}$/;
-    const formattedPhone = phoneNumber.replace(/\s/g, ''); 
+    const formattedPhone = formState.phoneNumber.replace(/\s/g, ''); 
 
-    if (!phoneRegex.test(formattedPhone)) {
-      setError('Please enter a valid phone number with country code (e.g., +91 XXXXXXXXXX)');
+    if (!VALIDATION_REGEX.PHONE.test(formattedPhone)) {
+      setError(UI_MESSAGES.INVALID_PHONE);
       return;
     }
 
@@ -266,14 +267,14 @@ const Login: React.FC<LoginProps> = ({ onClose }) => {
     clearErrors();
 
     try {
-      if (!window.recaptchaVerifier) {
+      if (!recaptchaVerifierRef.current) {
         initRecaptcha('recaptcha-container');
       }
       
-      const appVerifier = window.recaptchaVerifier;
+      const appVerifier = recaptchaVerifierRef.current;
 
       if (!appVerifier) {
-        setError("reCAPTCHA initialization failed. Please try again.");
+        setError(UI_MESSAGES.RECAPTCHA_FAILED);
         setSendingOTP(false);
         return;
       }
@@ -281,24 +282,24 @@ const Login: React.FC<LoginProps> = ({ onClose }) => {
       const result = await signInWithPhoneNumber(auth, formattedPhone, appVerifier);
       setConfirmationResult(result);
       
-      setShowOTPInput(true);
-      setSuccess('OTP sent to your phone number!');
+      updateFormField('showOTPInput', true);
+      setSuccess(UI_MESSAGES.OTP_SENT_SUCCESS);
     } catch (err: unknown) { 
-      console.error('OTP send error:', err);
-      setError('Failed to send OTP. Please check your phone number and ensure reCAPTCHA is working.');
+      handleError(err, setError, UI_MESSAGES.OTP_SEND_FAILED);
     } finally {
       setSendingOTP(false);
     }
   };
 
+ 
   const verifyPhoneOTP = async () => {
-    if (otpCode.length !== 6) {
-      setError('Please enter a valid 6-digit OTP');
+    if (formState.otpCode.length !== VALIDATION_RULES.OTP_LENGTH) {
+      setError(UI_MESSAGES.INVALID_OTP);
       return;
     }
 
     if (!confirmationResult) {
-      setError('OTP process not initialized. Please resend OTP.');
+      setError(UI_MESSAGES.OTP_NOT_INITIALIZED);
       return;
     }
 
@@ -306,15 +307,14 @@ const Login: React.FC<LoginProps> = ({ onClose }) => {
     clearErrors();
 
     try {
-      await confirmationResult.confirm(otpCode);
-      setPhoneVerified(true);
-      setShowOTPInput(false);
-      setSuccess('Phone number verified successfully!');
+      await confirmationResult.confirm(formState.otpCode);
+      updateFormField('phoneVerified', true);
+      updateFormField('showOTPInput', false);
+      setSuccess(UI_MESSAGES.PHONE_VERIFIED_SUCCESS);
       
       await signOut(auth); 
     } catch (err: unknown) { 
-      console.error('OTP verification error:', err);
-      setError('Invalid OTP. Please try again.');
+      handleError(err, setError, UI_MESSAGES.OTP_VERIFY_FAILED);
     } finally {
       setVerifyingOTP(false);
     }
@@ -324,72 +324,54 @@ const Login: React.FC<LoginProps> = ({ onClose }) => {
     e.preventDefault();
     clearErrors();
 
-    if (!phoneVerified) {
-      setError('Please verify your phone number first.');
+    if (!formState.phoneVerified) {
+      setError(UI_MESSAGES.PHONE_NOT_VERIFIED);
       return;
     }
     
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(signupEmail)) {
-      setError('Please enter a valid email address (e.g. user@example.com)');
+    if (!VALIDATION_REGEX.EMAIL.test(formState.signupEmail)) {
+      setError(UI_MESSAGES.INVALID_EMAIL);
       return;
     }
     
-    if (fullName.trim().length < 2) {
-      setError('Please enter your full name (at least 2 characters)');
+    if (formState.fullName.trim().length < VALIDATION_RULES.NAME_MIN_LENGTH) {
+      setError(UI_MESSAGES.NAME_TOO_SHORT);
       return;
     }
     
-    if (signupPassword !== confirmPassword) {
-      setError('Passwords do not match.');
+    if (formState.signupPassword !== formState.confirmPassword) {
+      setError(UI_MESSAGES.PASSWORDS_MISMATCH);
       return;
     }
     
-    if (signupPassword.length < 6) {
-      setError('Password must be at least 6 characters long.');
+    if (formState.signupPassword.length < VALIDATION_RULES.PASSWORD_MIN_LENGTH) {
+      setError(UI_MESSAGES.PASSWORD_TOO_SHORT);
       return;
     }
     
     setLoading(true);
     
     try {
-      const userCredential = await createUserWithEmailAndPassword(auth, signupEmail, signupPassword);
+      const userCredential = await createUserWithEmailAndPassword(auth, formState.signupEmail, formState.signupPassword);
       const user = userCredential.user;
       
       await updateProfile(user, {
-        displayName: fullName.trim(),
+        displayName: formState.fullName.trim(),
       });
       
       await sendEmailVerification(user);
       await signOut(auth); 
       
-      setSuccess('Account created successfully! Please check your email for the verification link before logging in.');
+      setSuccess(UI_MESSAGES.SIGNUP_SUCCESS);
 
       clearAllForms(); 
       setTimeout(() => {
         setSuccess(null);
         setShowSignupForm(false);
-      }, 4000);
+      }, TIMEOUTS.SUCCESS_MESSAGE);
       
     } catch (err: unknown) { 
-      console.error('Signup error:', err);
-      if (isFirebaseError(err)) { 
-        switch (err.code) {
-          case 'auth/email-already-in-use':
-            setError('This email address is already registered.');
-            break;
-          case 'auth/invalid-email':
-            setError('Invalid email address format.');
-            break;
-          case 'auth/weak-password':
-            setError('Password is too weak. Must be at least 6 characters.');
-            break;
-          default:
-            setError('Failed to create account. Please try again.');
-        }
-      } else {
-        setError('An unexpected error occurred during signup.');
-      }
+      handleError(err, setError, UI_MESSAGES.SIGNUP_FAILED);
     } finally {
       setLoading(false);
     }
@@ -400,13 +382,13 @@ const Login: React.FC<LoginProps> = ({ onClose }) => {
     clearErrors();
     
     try {
-      const tempCredential = await signInWithEmailAndPassword(auth, unverifiedEmail, tempPassword);
+      const tempCredential = await signInWithEmailAndPassword(auth, formState.unverifiedEmail, formState.tempPassword);
       await sendEmailVerification(tempCredential.user);
       await signOut(auth); 
       
-      setSuccess('Verification email re-sent! Please check your inbox.');
+      setSuccess(UI_MESSAGES.EMAIL_VERIFICATION_RESENT);
     } catch (err: unknown) { 
-      setError('Failed to resend verification email. Please try again.');
+      handleError(err, setError, UI_MESSAGES.VERIFICATION_RESEND_FAILED);
     } finally {
       setResendLoading(false);
     }
@@ -417,34 +399,32 @@ const Login: React.FC<LoginProps> = ({ onClose }) => {
     clearErrors();
     
     try {
-      const userCredential = await signInWithEmailAndPassword(auth, unverifiedEmail, tempPassword);
+      const userCredential = await signInWithEmailAndPassword(auth, formState.unverifiedEmail, formState.tempPassword);
       await userCredential.user.reload(); 
       
       if (userCredential.user.emailVerified) {
-        setSuccess('Email verified! Login successful!');
+        setSuccess(UI_MESSAGES.EMAIL_VERIFIED_SUCCESS);
         setShowEmailVerification(false);
         
         setTimeout(() => {
           closePopup();
           router.push('/');
-        }, 1500);
+        }, TIMEOUTS.SUCCESS_REDIRECT);
       } else {
         await signOut(auth); 
-        setError('Email is still not verified. Please check your inbox and click the verification link.');
+        setError(UI_MESSAGES.EMAIL_NOT_VERIFIED);
       }
     } catch (err: unknown) {
-      setError('Login failed. Please check your credentials.');
+      handleError(err, setError, UI_MESSAGES.LOGIN_FAILED);
     } finally {
       setLoading(false);
     }
   };
 
- 
   return (
     <div className="fixed inset-0 bg-[rgba(31,31,31,0.8)] bg-opacity-80 z-[9999] flex justify-center items-center p-2 sm:p-4">
       <div className="relative w-full max-w-[900px] font-sans">
         
-       
         <button 
           type="button" 
           className="absolute right-2 top-2 z-10 w-8 h-8 md:w-10 md:h-10 text-white bg-gray-700/80 hover:bg-black/90 rounded-full font-bold text-xl flex items-center justify-center border-2 border-white transition-colors" 
@@ -456,7 +436,6 @@ const Login: React.FC<LoginProps> = ({ onClose }) => {
         
         <div className="flex flex-col md:flex-row rounded-xl overflow-hidden shadow-2xl border-2 border-white max-w-[900px] w-full">
           
-    
           <div className="flex-1 bg-[#dadada] flex items-center justify-center p-5 md:p-10 h-[150px] md:h-auto">
             <img 
               src="/assets/login/welcome-character.png" 
@@ -465,11 +444,9 @@ const Login: React.FC<LoginProps> = ({ onClose }) => {
             />
           </div>
 
-      
           <div className={`md:w-1/2 bg-black/80 backdrop-blur-md flex justify-center p-5 max-h-[70vh] md:max-h-[90vh] overflow-y-auto ${showSignupForm ? 'items-start pt-8' : 'items-center'}`}>
             <div className="bg-white/10 border border-white/30 rounded-2xl p-6 md:p-8 w-full max-w-sm shadow-xl text-white text-center">
               
-            
               {!showSignupForm && !showEmailVerification && (
                 <div>
                   <h2 className="text-3xl font-bold mb-6 text-white">Login</h2>
@@ -480,8 +457,8 @@ const Login: React.FC<LoginProps> = ({ onClose }) => {
                         <input 
                           type="email" 
                           id="email" 
-                          value={email} 
-                          onChange={(e) => setEmail(e.target.value)} 
+                          value={formState.email} 
+                          onChange={(e) => updateFormField('email', e.target.value)} 
                           required 
                           className="w-full p-3 rounded-lg border border-gray-300 bg-white/90 text-gray-800 box-border focus:outline-none focus:ring-2 focus:ring-sky-400"
                         />
@@ -491,8 +468,8 @@ const Login: React.FC<LoginProps> = ({ onClose }) => {
                         <input 
                           type="password" 
                           id="password" 
-                          value={password} 
-                          onChange={(e) => setPassword(e.target.value)} 
+                          value={formState.password} 
+                          onChange={(e) => updateFormField('password', e.target.value)} 
                           required 
                           className="w-full p-3 rounded-lg border border-gray-300 bg-white/90 text-gray-800 box-border focus:outline-none focus:ring-2 focus:ring-sky-400"
                         />
@@ -519,7 +496,6 @@ const Login: React.FC<LoginProps> = ({ onClose }) => {
                 </div>
               )}
 
-          
               {showEmailVerification && (
                 <div>
                   <h2 className="text-3xl font-bold mb-6 text-white">Verify Email</h2>
@@ -527,7 +503,7 @@ const Login: React.FC<LoginProps> = ({ onClose }) => {
                     Please verify your email address before logging in. Check your inbox for the verification link.
                   </p>
                   <p className="text-gray-300 mb-5 text-sm">
-                    Email: <strong>{unverifiedEmail}</strong>
+                    Email: <strong>{formState.unverifiedEmail}</strong>
                   </p>
                   
                   <button 
@@ -565,29 +541,29 @@ const Login: React.FC<LoginProps> = ({ onClose }) => {
                   <form onSubmit={signup}>
                     <div className="space-y-4 text-left">
                       
-                      {/* Full Name */}
+                    
                       <div className="form-group">
                         <label htmlFor="fullName" className="block mb-2 font-medium">Full Name:</label>
                         <input 
                           type="text" 
                           id="fullName" 
-                          value={fullName} 
-                          onChange={(e) => setFullName(e.target.value)} 
+                          value={formState.fullName} 
+                          onChange={(e) => updateFormField('fullName', e.target.value)} 
                           required 
                           className="w-full p-3 rounded-lg border border-gray-300 bg-white/90 text-gray-800 box-border focus:outline-none focus:ring-2 focus:ring-sky-400"
                         />
                       </div>
                       
-                 
+                     
                       <div className="form-group">
                         <label htmlFor="signupEmail" className="block mb-2 font-medium">Email: *</label>
                         <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 items-center">
                           <input 
                             type="email" 
                             id="signupEmail" 
-                            value={signupEmail} 
-                            onChange={(e) => setSignupEmail(e.target.value)} 
-                            disabled={emailVerified}
+                            value={formState.signupEmail} 
+                            onChange={(e) => updateFormField('signupEmail', e.target.value)} 
+                            disabled={formState.emailVerified}
                             required
                             className="flex-1 w-full sm:w-auto p-3 rounded-lg border border-gray-300 bg-white/90 text-gray-800 box-border focus:outline-none focus:ring-2 focus:ring-sky-400 disabled:bg-gray-400/50 disabled:cursor-not-allowed"
                           />
@@ -595,25 +571,24 @@ const Login: React.FC<LoginProps> = ({ onClose }) => {
                             type="button" 
                             className="p-3 px-4 rounded-lg bg-gradient-to-r from-cyan-400 to-blue-600 text-white font-bold cursor-pointer whitespace-nowrap transition-transform duration-200 hover:scale-[1.05] disabled:opacity-60 disabled:cursor-not-allowed"
                             onClick={sendEmailVerificationCode}
-                            disabled={emailVerified || emailVerifying}
+                            disabled={formState.emailVerified || emailVerifying}
                           >
-                            {emailVerified ? '✓ Verified' : emailVerifying ? 'Sending...' : 'Verify'}
+                            {formState.emailVerified ? '✓ Verified' : emailVerifying ? 'Sending...' : 'Verify'}
                           </button>
                         </div>
                         {emailVerificationSent && <p className="text-green-400 text-sm mt-1">Verification email sent! Check your inbox and click the link.</p>}
                       </div>
-
-                   
+               
                       <div className="form-group">
                         <label htmlFor="phoneNumber" className="block mb-2 font-medium">Mobile Number: *</label>
                         <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 items-center">
                           <input 
                             type="tel" 
                             id="phoneNumber" 
-                            value={phoneNumber} 
-                            onChange={(e) => setPhoneNumber(e.target.value)} 
-                            placeholder="+91 XXXXXXXXXX"
-                            disabled={phoneVerified || showOTPInput} 
+                            value={formState.phoneNumber} 
+                            onChange={(e) => updateFormField('phoneNumber', e.target.value)} 
+                            placeholder={PLACEHOLDERS.PHONE}
+                            disabled={formState.phoneVerified || formState.showOTPInput} 
                             required
                             className="flex-1 w-full sm:w-auto p-3 rounded-lg border border-gray-300 bg-white/90 text-gray-800 box-border focus:outline-none focus:ring-2 focus:ring-sky-400 disabled:bg-gray-400/50 disabled:cursor-not-allowed"
                           />
@@ -621,26 +596,27 @@ const Login: React.FC<LoginProps> = ({ onClose }) => {
                             type="button" 
                             className="p-3 px-4 rounded-lg bg-gradient-to-r from-cyan-400 to-blue-600 text-white font-bold cursor-pointer whitespace-nowrap transition-transform duration-200 hover:scale-[1.05] disabled:opacity-60 disabled:cursor-not-allowed"
                             onClick={sendPhoneOTP}
-                            disabled={phoneVerified || sendingOTP || showOTPInput}
+                            disabled={formState.phoneVerified || sendingOTP || formState.showOTPInput}
                           >
-                            {phoneVerified ? '✓ Verified' : sendingOTP ? 'Sending...' : 'Verify'}
+                            {formState.phoneVerified ? '✓ Verified' : sendingOTP ? 'Sending...' : 'Verify'}
                           </button>
                         </div>
                         <p className="text-red-400 text-xs italic mt-1">* This field is mandatory</p>
                         
-                        {showOTPInput && !phoneVerified && (
+                        {formState.showOTPInput && !formState.phoneVerified && (
                           <div className="flex gap-2 mt-3">
                             <input 
                               type="text" 
-                              value={otpCode} 
-                              onChange={(e) => setOtpCode(e.target.value)} 
-                              placeholder="Enter 6-digit OTP"
-                              maxLength={6}
+                              value={formState.otpCode} 
+                              onChange={(e) => updateFormField('otpCode', e.target.value)} 
+                              placeholder={PLACEHOLDERS.OTP}
+                              maxLength={VALIDATION_RULES.OTP_LENGTH}
                               className="flex-1 p-3 rounded-lg border border-gray-300 bg-white/90 text-gray-800 text-lg tracking-widest text-center focus:outline-none focus:ring-2 focus:ring-sky-400"
                             />
                             <button 
                               type="button" 
-                              className="p-3 px-4 rounded-lg bg-emerald-500 text-white font-bold cursor-pointer whitespace-nowrap transition-transform duration-200 hover:scale-[1.05] disabled:opacity-60 disabled:cursor-not-allowed"
+                              className="p-3 px-4 rounded-lg bg-emerald-500 text-white font-bold cursor-pointer whitespace-nowrap transition-transform duration-200 hover:scale
+                              -[1.05] disabled:opacity-60 disabled:cursor-not-allowed"
                               onClick={verifyPhoneOTP}
                               disabled={verifyingOTP}
                             >
@@ -649,29 +625,28 @@ const Login: React.FC<LoginProps> = ({ onClose }) => {
                           </div>
                         )}
                       </div>
-
-                    
+ 
                       <div className="form-group">
                         <label htmlFor="signupPassword" className="block mb-2 font-medium">Password:</label>
                         <input 
                           type="password" 
                           id="signupPassword" 
-                          value={signupPassword} 
-                          onChange={(e) => setSignupPassword(e.target.value)} 
+                          value={formState.signupPassword} 
+                          onChange={(e) => updateFormField('signupPassword', e.target.value)} 
                           required 
-                          minLength={6}
+                          minLength={VALIDATION_RULES.PASSWORD_MIN_LENGTH}
                           className="w-full p-3 rounded-lg border border-gray-300 bg-white/90 text-gray-800 box-border focus:outline-none focus:ring-2 focus:ring-sky-400"
                         />
                       </div>
                       
-                     
+                      
                       <div className="form-group">
                         <label htmlFor="confirmPassword" className="block mb-2 font-medium">Confirm Password:</label>
                         <input 
                           type="password" 
                           id="confirmPassword" 
-                          value={confirmPassword} 
-                          onChange={(e) => setConfirmPassword(e.target.value)} 
+                          value={formState.confirmPassword} 
+                          onChange={(e) => updateFormField('confirmPassword', e.target.value)} 
                           required 
                           className="w-full p-3 rounded-lg border border-gray-300 bg-white/90 text-gray-800 box-border focus:outline-none focus:ring-2 focus:ring-sky-400"
                         />
@@ -684,19 +659,18 @@ const Login: React.FC<LoginProps> = ({ onClose }) => {
                       className="w-full p-3 mt-5 rounded-lg text-lg font-bold cursor-pointer transition-transform duration-200 ease-in-out text-white 
                                  bg-[linear-gradient(90deg,_#12DBE5_0%,_#1F5799_48.96%,_#F20000_100%)] 
                                  hover:scale-[1.02] disabled:opacity-70 disabled:cursor-not-allowed disabled:transform-none"
-                      disabled={loading || !phoneVerified}
+                      disabled={loading || !formState.phoneVerified}
                     >
                       {loading ? 'Creating Account...' : 'Sign Up'}
                     </button>
                     
-                    {!phoneVerified && (
+                    {!formState.phoneVerified && (
                       <p className="text-yellow-400 text-sm mt-3">
                         Please verify your phone number to sign up
                       </p>
                     )}
                   </form>
                   
-               
                   <div id="recaptcha-container" className="mt-2"></div>
                   
                   {error && <p className="text-red-400 mt-4 font-medium">{error}</p>}
