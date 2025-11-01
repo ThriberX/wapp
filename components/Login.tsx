@@ -490,7 +490,7 @@ const Login: React.FC<LoginProps> = ({ onClose }) => {
                   {success && <p className="text-green-400 mt-4 font-medium">{success}</p>}
                   
                   <p className="mt-5 text-gray-300 text-base md:text-lg">
-                    Don't have an account? 
+                    Don&apos;t have an account? 
                     <a href="#" onClick={toggleToSignup} className="text-cyan-400 hover:text-sky-400 font-extrabold transition-colors ml-1">Sign Up</a>
                   </p>
                 </div>

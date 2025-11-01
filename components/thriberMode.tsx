@@ -4,25 +4,10 @@ import Image from "next/image";
 import Link from "next/link";
 import { LINKS } from "@/lib/constants/links"; 
 import { GRADIENT_CLASSES } from "@/lib/theme/colours";
-import Galaxy from '@/components/Galaxy/Galaxy';
 
 export default function ThriberMode() {
   return (
     <section id="thriberMode" className="relative text-white py-16 lg:py-20 min-h-screen">
-     
-      <div className="absolute inset-0 z-0">
-        <Galaxy 
-          transparent={true}
-          hueShift={180}
-          glowIntensity={0.5}
-          saturation={0.3}
-          mouseInteraction={true}
-          mouseRepulsion={true}
-          twinkleIntensity={0.4}
-          rotationSpeed={0.05}
-          speed={1.0}
-        />
-      </div>
 
       
       <div className="relative z-10 container mx-auto px-4 sm:px-6 lg:px-8">

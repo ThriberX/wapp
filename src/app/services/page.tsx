@@ -2,7 +2,6 @@
 import { useState } from "react";
 import { GRADIENTS } from "@/lib/theme/colours";
 import { buttonStyles, buttonHandlers } from "@/lib/theme/buttonstyle";
-import Galaxy from '@/components/Galaxy/Galaxy';
 
 export default function HealthServices() {
   const [showOptions, setShowOptions] = useState(false);
@@ -27,20 +26,7 @@ export default function HealthServices() {
   };
 
   return (
-    <div className="relative bg-black text-white overflow-hidden">
-      <div className="fixed inset-0 z-0">
-        <Galaxy 
-          transparent={true}
-          hueShift={180}
-          glowIntensity={0.5}
-          saturation={0.3}
-          mouseInteraction={true}
-          mouseRepulsion={true}
-          twinkleIntensity={0.4}
-          rotationSpeed={0.05}
-          speed={1.0}
-        />
-      </div>
+    <div className="relative text-white overflow-hidden">
 
       <div className="relative z-10">
         <section id="home" className="min-h-screen flex flex-col justify-center py-16">

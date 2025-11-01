@@ -3,25 +3,10 @@
 import Link from "next/link";
 import Image from "next/image";
 import { LINKS } from "@/lib/constants/links";
-import Galaxy from '@/components/Galaxy/Galaxy';
 
 export default function Footer() {
   return (
     <footer className="relative text-white text-center py-8">
-      
-      <div className="absolute inset-0 z-0">
-        <Galaxy 
-          transparent={true}
-          hueShift={180}
-          glowIntensity={0.5}
-          saturation={0.3}
-          mouseInteraction={true}
-          mouseRepulsion={true}
-          twinkleIntensity={0.4}
-          rotationSpeed={0.05}
-          speed={1.0}
-        />
-      </div>
 
       <div className="relative z-10">
         <hr className="border-gray-700 mb-6" />
