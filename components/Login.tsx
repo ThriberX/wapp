@@ -2,6 +2,7 @@
 
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation'; 
+import Image from "next/image";
 import { 
   signInWithEmailAndPassword, 
   createUserWithEmailAndPassword, 
@@ -433,11 +434,13 @@ const Login: React.FC<LoginProps> = ({ onClose }) => {
         <div className="flex flex-col md:flex-row rounded-xl overflow-hidden shadow-2xl border-2 border-white max-w-[900px] w-full">
           
           <div className="flex-1 bg-[#dadada] flex items-center justify-center p-5 md:p-10 h-[150px] md:h-auto">
-            <img 
-              src="/assets/login/welcome-character.png" 
-              alt="Welcome Character" 
-              className="max-w-[40%] md:max-w-[90%] h-auto rounded-[10px] object-contain"
-            />
+            <Image
+  src="/assets/login/welcome-character.png"
+  alt="Welcome Character"
+  width={400} 
+  height={400} 
+  className="max-w-[40%] md:max-w-[90%] h-auto rounded-[10px] object-contain"
+/>
           </div>
 
           <div className={`md:w-1/2 bg-black/80 backdrop-blur-md flex justify-center p-5 max-h-[70vh] md:max-h-[90vh] overflow-y-auto ${showSignupForm ? 'items-start pt-8' : 'items-center'}`}>
