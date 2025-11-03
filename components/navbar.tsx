@@ -72,13 +72,13 @@ export default function Navbar({ onLoginClick }: NavbarProps) {
 
         <ul className="hidden md:flex gap-6 items-center text-lg">
           <li>
-            <a href="/#pageviewer" onClick={(e) => smoothScroll(e, 'pageviewer')} className="hover:text-blue-400 transition">Home</a>
+            <a href="" onClick={(e) => smoothScroll(e, 'pageviewer')} className="hover:text-blue-400 transition">Home</a>
           </li>
           <li>
-            <a href="/#thriberMode" onClick={(e) => smoothScroll(e, 'thriberMode')} className="hover:text-blue-400 transition">Thriber Mode</a>
+            <a href="" onClick={(e) => smoothScroll(e, 'thriberMode')} className="hover:text-blue-400 transition">Thriber Mode</a>
           </li>
           <li>
-            <a href="/#about" onClick={(e) => smoothScroll(e, 'about')} className="hover:text-blue-400 transition">About Us</a>
+            <a href="" onClick={(e) => smoothScroll(e, 'about')} className="hover:text-blue-400 transition">About Us</a>
           </li>
           <li>
             <a href="/services" className="hover:text-blue-400 transition">Services</a>
@@ -115,13 +115,13 @@ export default function Navbar({ onLoginClick }: NavbarProps) {
       {isNavOpen && (
         <ul className="absolute top-20 right-4 bg-black/90 backdrop-blur-md text-white rounded-xl flex flex-col gap-4 p-6 w-60 md:hidden z-50 border border-gray-700">
           <li>
-            <a href="/#pageviewer" onClick={(e) => smoothScroll(e, 'pageviewer')} className="hover:text-blue-400 transition">Home</a>
+            <a href="" onClick={(e) => smoothScroll(e, 'pageviewer')} className="hover:text-blue-400 transition">Home</a>
           </li>
           <li>
-            <a href="/#thriberMode" onClick={(e) => smoothScroll(e, 'thriberMode')} className="hover:text-blue-400 transition">Thriber Mode</a>
+            <a href="" onClick={(e) => smoothScroll(e, 'thriberMode')} className="hover:text-blue-400 transition">Thriber Mode</a>
           </li>
           <li>
-            <a href="/#about" onClick={(e) => smoothScroll(e, 'about')} className="hover:text-blue-400 transition">About Us</a>
+            <a href="" onClick={(e) => smoothScroll(e, 'about')} className="hover:text-blue-400 transition">About Us</a>
           </li>
           <li>
             <a href="/services" className="hover:text-blue-400 transition" onClick={toggleNav}>Services</a>
