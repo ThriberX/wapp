@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import Link from "next/link";
 import Image from "next/image";
+import { useRouter } from 'next/navigation'; 
 import { buttonStyles, buttonHandlers } from "@/lib/theme/buttonstyle";
 import { GRADIENTS } from "@/lib/theme/colours";
 import Login from '@/components/Login';
@@ -14,6 +15,7 @@ interface NavbarProps {
 export default function Navbar({ onLoginClick }: NavbarProps) {
   const [isNavOpen, setIsNavOpen] = useState(false);
   const [showAuthPopup, setShowAuthPopup] = useState(false);
+  const router = useRouter(); 
 
   const toggleNav = () => setIsNavOpen(!isNavOpen);
 
@@ -21,14 +23,14 @@ export default function Navbar({ onLoginClick }: NavbarProps) {
     if (buttonHandlers.onClick) {
       buttonHandlers.onClick(e);
     }
-    
+
     if (onLoginClick) { 
       onLoginClick();
     } else {
       setShowAuthPopup(true);
       console.log("Login button clicked, showing Auth Popup.");
     }
-    
+
     if (isNavOpen) {
       toggleNav();
     }
@@ -38,12 +40,19 @@ export default function Navbar({ onLoginClick }: NavbarProps) {
     setShowAuthPopup(false);
   };
 
-  const smoothScroll = (e: React.MouseEvent<HTMLAnchorElement>, id: string) => {
+  const handleSmoothScroll = (e: React.MouseEvent<HTMLAnchorElement>, id: string) => {
     e.preventDefault();
+
+    if (window.location.pathname !== "/") {
+      router.push(`/#${id}`);
+      return;
+    }
+
     const element = document.getElementById(id);
     if (element) {
       element.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
+
     if (isNavOpen) {
       toggleNav();
     }
@@ -67,16 +76,19 @@ export default function Navbar({ onLoginClick }: NavbarProps) {
 
           <ul className="hidden md:flex gap-6 items-center text-lg">
             <li>
-              {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
-              <a href="/#pageviewer" onClick={(e) => smoothScroll(e, 'pageviewer')} className="hover:text-blue-400 transition">Home</a>
+              <Link href="/#pageviewer" onClick={(e) => handleSmoothScroll(e, 'pageviewer')} className="hover:text-blue-400 transition">
+                Home
+              </Link>
             </li>
             <li>
-              {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
-              <a href="/#thriberMode" onClick={(e) => smoothScroll(e, 'thriberMode')} className="hover:text-blue-400 transition">Thriber Mode</a>
+              <Link href="/#thriberMode" onClick={(e) => handleSmoothScroll(e, 'thriberMode')} className="hover:text-blue-400 transition">
+                Thriber Mode
+              </Link>
             </li>
             <li>
-              {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
-              <a href="/#about" onClick={(e) => smoothScroll(e, 'about')} className="hover:text-blue-400 transition">About Us</a>
+              <Link href="/#about" onClick={(e) => handleSmoothScroll(e, 'about')} className="hover:text-blue-400 transition">
+                About Us
+              </Link>
             </li>
             <li>
               <Link href="/services" className="hover:text-blue-400 transition">Services</Link>
@@ -113,16 +125,19 @@ export default function Navbar({ onLoginClick }: NavbarProps) {
         {isNavOpen && (
           <ul className="absolute top-20 right-4 bg-black/90 backdrop-blur-md text-white rounded-xl flex flex-col gap-4 p-6 w-60 md:hidden z-50 border border-gray-700">
             <li>
-              {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
-              <a href="/#pageviewer" onClick={(e) => smoothScroll(e, 'pageviewer')} className="hover:text-blue-400 transition">Home</a>
+              <Link href="/#pageviewer" onClick={(e) => handleSmoothScroll(e, 'pageviewer')} className="hover:text-blue-400 transition">
+                Home
+              </Link>
             </li>
             <li>
-              {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
-              <a href="/#thriberMode" onClick={(e) => smoothScroll(e, 'thriberMode')} className="hover:text-blue-400 transition">Thriber Mode</a>
+              <Link href="/#thriberMode" onClick={(e) => handleSmoothScroll(e, 'thriberMode')} className="hover:text-blue-400 transition">
+                Thriber Mode
+              </Link>
             </li>
             <li>
-              {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
-              <a href="/#about" onClick={(e) => smoothScroll(e, 'about')} className="hover:text-blue-400 transition">About Us</a>
+              <Link href="/#about" onClick={(e) => handleSmoothScroll(e, 'about')} className="hover:text-blue-400 transition">
+                About Us
+              </Link>
             </li>
             <li>
               <Link href="/services" className="hover:text-blue-400 transition" onClick={toggleNav}>Services</Link>

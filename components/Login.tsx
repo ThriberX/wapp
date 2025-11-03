@@ -143,18 +143,14 @@ const Login: React.FC<LoginProps> = ({ onClose }) => {
     try {
       const verifier = new RecaptchaVerifier(getAuth(), containerId, {
         'size': 'invisible',
-        'callback': () => { 
-          console.log('reCAPTCHA solved');
-        },
-        'expired-callback': () => {
-          console.log('reCAPTCHA expired, please try again.');
-        }
+        'callback': () => {},
+        'expired-callback': () => {}
       });
       
       recaptchaVerifierRef.current = verifier;
 
-      verifier.render().then((widgetId) => {
-        console.log('reCAPTCHA initialized with widget ID:', widgetId);
+      verifier.render().then(() => {
+
       });
       
       return verifier;
