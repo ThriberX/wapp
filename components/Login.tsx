@@ -1,5 +1,6 @@
 'use client'; 
 
+import Image from "next/image";
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation'; 
 import { 
@@ -433,9 +434,11 @@ const Login: React.FC<LoginProps> = ({ onClose }) => {
         <div className="flex flex-col md:flex-row rounded-xl overflow-hidden shadow-2xl border-2 border-white max-w-[900px] w-full">
           
           <div className="flex-1 bg-[#dadada] flex items-center justify-center p-5 md:p-10 h-[150px] md:h-auto">
-            <img 
+             <Image
               src="/assets/login/welcome-character.png" 
-              alt="Welcome Character" 
+              alt="Welcome charachter"
+              width={600} 
+              height={400}
               className="max-w-[40%] md:max-w-[90%] h-auto rounded-[10px] object-contain"
             />
           </div>
