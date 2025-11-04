@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation'; 
+import Image from "next/image";
 import { 
   signInWithEmailAndPassword, 
   createUserWithEmailAndPassword, 
@@ -144,18 +145,14 @@ const Login: React.FC<LoginProps> = ({ onClose }) => {
     try {
       const verifier = new RecaptchaVerifier(getAuth(), containerId, {
         'size': 'invisible',
-        'callback': () => { 
-          console.log('reCAPTCHA solved');
-        },
-        'expired-callback': () => {
-          console.log('reCAPTCHA expired, please try again.');
-        }
+        'callback': () => {},
+        'expired-callback': () => {}
       });
       
       recaptchaVerifierRef.current = verifier;
 
-      verifier.render().then((widgetId) => {
-        console.log('reCAPTCHA initialized with widget ID:', widgetId);
+      verifier.render().then(() => {
+
       });
       
       return verifier;
@@ -438,13 +435,13 @@ const Login: React.FC<LoginProps> = ({ onClose }) => {
         <div className="flex flex-col md:flex-row rounded-xl overflow-hidden shadow-2xl border-2 border-white max-w-[900px] w-full">
           
           <div className="flex-1 bg-[#dadada] flex items-center justify-center p-5 md:p-10 h-[150px] md:h-auto">
-             <Image
-              src="/assets/login/welcome-character.png" 
-              alt="Welcome charachter"
-              width={600} 
-              height={400}
-              className="max-w-[40%] md:max-w-[90%] h-auto rounded-[10px] object-contain"
-            />
+            <Image
+  src="/assets/login/welcome-character.png"
+  alt="Welcome Character"
+  width={400} 
+  height={400} 
+  className="max-w-[40%] md:max-w-[90%] h-auto rounded-[10px] object-contain"
+/>
           </div>
 
           <div className={`md:w-1/2 bg-black/80 backdrop-blur-md flex justify-center p-5 max-h-[70vh] md:max-h-[90vh] overflow-y-auto ${showSignupForm ? 'items-start pt-8' : 'items-center'}`}>
@@ -493,7 +490,7 @@ const Login: React.FC<LoginProps> = ({ onClose }) => {
                   {success && <p className="text-green-400 mt-4 font-medium">{success}</p>}
                   
                   <p className="mt-5 text-gray-300 text-base md:text-lg">
-                    Don`t have an account? 
+                    Don&apos;t have an account? 
                     <a href="#" onClick={toggleToSignup} className="text-cyan-400 hover:text-sky-400 font-extrabold transition-colors ml-1">Sign Up</a>
                   </p>
                 </div>

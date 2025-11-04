@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import { db } from '@/lib/firebase'; 
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { getAIQuizAdvice } from './Interface';
-import Galaxy from '@/components/Galaxy/Galaxy'; 
 
 export default function QuestionPage() {
   const [tree, setTree] = useState<any>(null);
@@ -76,21 +75,6 @@ export default function QuestionPage() {
   return (
     <div className="relative min-h-screen w-full overflow-hidden">
    
-      <div className="fixed inset-0 z-0">
-        <Galaxy 
-          transparent={true}
-          hueShift={180}
-          glowIntensity={0.5}
-          saturation={0.3}
-          mouseInteraction={true}
-          mouseRepulsion={true}
-          twinkleIntensity={0.4}
-          rotationSpeed={0.05}
-          speed={1.0}
-        />
-      </div>
-
-     
       <div className="relative z-10 min-h-screen flex items-center justify-center p-4">
         <div className="bg-white/10 backdrop-blur-md border border-white/30 rounded-xl shadow-xl px-8 py-12 w-[90%] max-w-md text-center space-y-8 flex flex-col items-center justify-center min-h-[400px]">
           {currentNode.result ? (

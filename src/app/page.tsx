@@ -7,7 +7,6 @@ import PageViewer from "@/components/pageviewer"
 import ThriberMode from "@/components/thriberMode"
 import Contactus from "@/components/aboutUs"
 
-import Navbar from '@/components/navbar'; 
 import Login from '@/components/Login';   
 
 export default function HomePage() {
@@ -25,9 +24,7 @@ export default function HomePage() {
 
     return (
       <>
-        <Navbar onLoginClick={handleLoginClick} />
-
-        <main className="bg-black">
+        <main>
           <PageViewer/>
           <ThriberMode/>
           <Contactus/>

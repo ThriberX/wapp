@@ -1,24 +1,10 @@
 'use client';
 import Image from "next/image";
-import Galaxy from '@/components/Galaxy/Galaxy';
 
 export default function EMR() {
   return (
-    <div className="relative text-white bg-black">
+    <div className="relative text-white ">
      
-      <div className="fixed inset-0 z-0">
-        <Galaxy 
-          transparent={true}
-          hueShift={180}
-          glowIntensity={0.5}
-          saturation={0.3}
-          mouseInteraction={true}
-          mouseRepulsion={true}
-          twinkleIntensity={0.4}
-          rotationSpeed={0.05}
-          speed={1.0}
-        />
-      </div>
 
      
       <div className="relative z-10">

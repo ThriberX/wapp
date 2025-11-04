@@ -28,7 +28,7 @@ export default function HealthServices() {
   };
 
   return (
-<div className="bg-black text-white overflow-hidden">
+<div className="text-white overflow-hidden">
 
   <section id="home" className="min-h-screen flex flex-col justify-center py-16">
 

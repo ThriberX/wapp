@@ -3,24 +3,11 @@
 import Image from "next/image";
 import { GRADIENTS } from "@/lib/theme/colours";
 import { buttonStyles, buttonHandlers } from "@/lib/theme/buttonstyle";
-import Galaxy from "@/components/Galaxy/Galaxy";
 
 export default function AboutSection() {
   return (
     <section id="about" className="relative text-white py-16 lg:py-24 px-6 sm:px-8 lg:px-12 overflow-hidden">
-      <div className="absolute inset-0 z-0">
-        <Galaxy 
-          transparent={true}
-          hueShift={180}
-          glowIntensity={0.5}
-          saturation={0.3}
-          mouseInteraction={true}
-          mouseRepulsion={true}
-          twinkleIntensity={0.4}
-          rotationSpeed={0.05}
-          speed={1.0}
-        />
-      </div>
+
 
       <div className="relative z-10 max-w-8xl mx-auto flex flex-col lg:flex-row items-center gap-8 lg:gap-10">
         <div className="lg:w-1/2 w-full">
