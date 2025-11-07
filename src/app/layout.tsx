@@ -34,7 +34,7 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased relative`}
       >
         <div className="fixed inset-0 z-0">
-          <Galaxy />   
+          <Galaxy transparent={false} />   
         </div>
         
         <div className="relative z-10">

@@ -38,7 +38,7 @@ export default function HealthServices() {
         <h1 className="text-5xl sm:text-6xl lg:text-7xl xl:text-8xl font-black leading-tight mb-4">
           Clinic & Hospitals
         </h1>
-        <h1 className="text-5xl sm:text-6xl lg:text-7xl xl:text-8xl font-black leading-tight mb-8 bg-gradient-to-l from-[#12DBE5] via-[#1F5799] to-[#F20000] bg-clip-text text-transparent">
+        <h1 className="text-5xl sm:text-6xl lg:text-7xl xl:text-8xl font-black  mb-8 bg-[linear-gradient(1800deg,#F20000_20%,#1F5799_50%,#12DBE5_80%)] bg-clip-text text-transparent">
           Branding ThriveRx
         </h1>
       
