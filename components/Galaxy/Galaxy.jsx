@@ -211,9 +211,9 @@ export default function Galaxy({
     const gl = renderer.gl;
 
     if (transparent) {
-      gl.enable(gl.BLEND);
+      gl.disable(gl.BLEND);
       gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
-      gl.clearColor(0, 0, 0, 0);
+      gl.clearColor(0, 0, 0, 1);
     } else {
       gl.clearColor(0, 0, 0, 1);
     }
