@@ -1,7 +1,7 @@
 'use client'; 
 
 import { useState, useCallback, useEffect, useRef } from 'react';
-import { useRouter } from 'next/navigation'; 
+import { useRouter, usePathname } from 'next/navigation'; 
 import Image from "next/image";
 import { 
   signOut,
@@ -9,14 +9,12 @@ import {
   signInWithPhoneNumber,
   ConfirmationResult,
   getAuth,
-  onAuthStateChanged,
 } from 'firebase/auth';
 import { auth } from '@/src/firebase'; 
 import {
   VALIDATION_REGEX,
   VALIDATION_RULES,
   TIMEOUTS,
-  FIREBASE_ERROR_MESSAGES,
   UI_MESSAGES,
   PLACEHOLDERS,
 } from '@/lib/constants/authConstants';
@@ -25,23 +23,9 @@ const isFirebaseError = (err: any): err is { code: string } => {
   return err && typeof err === 'object' && 'code' in err && typeof (err as { code: string }).code === 'string';
 };
 
-const getFirebaseErrorMessage = (errorCode: string, defaultMessage: string): string => {
-  const customMessages: { [key: string]: string } = {
-    ...FIREBASE_ERROR_MESSAGES,
-    'auth/invalid-phone-number': 'Invalid phone number format. Please use +[country code][number]',
-    'auth/missing-phone-number': 'Please enter a phone number',
-    'auth/quota-exceeded': 'Too many requests. Please try again later',
-    'auth/captcha-check-failed': 'reCAPTCHA verification failed. Please try again',
-    'auth/invalid-app-credential': 'Phone authentication not properly configured. Please contact support',
-    'auth/web-storage-unsupported': 'Your browser does not support required features',
-  };
-  return customMessages[errorCode] || defaultMessage;
-};
-
 const handleError = (err: unknown, setError: (msg: string) => void, defaultMessage: string) => {
   if (isFirebaseError(err)) {
-    const errorMessage = getFirebaseErrorMessage(err.code, defaultMessage);
-    setError(errorMessage);
+    setError(defaultMessage);
   } else {
     setError(UI_MESSAGES.UNEXPECTED_ERROR);
   }
@@ -65,7 +49,8 @@ const INITIAL_FORM_STATE: FormState = {
 };
 
 const Login: React.FC<LoginProps> = ({ onClose }) => {
-  const router = useRouter(); 
+  const router = useRouter();
+  const pathname = usePathname(); // Current page path
   const recaptchaVerifierRef = useRef<RecaptchaVerifier | null>(null);
 
   const [formState, setFormState] = useState<FormState>(INITIAL_FORM_STATE);
@@ -109,22 +94,6 @@ const Login: React.FC<LoginProps> = ({ onClose }) => {
     clearErrors();
   }, [clearErrors]);
 
-  const isPhoneRegistered = async (phone: string): Promise<boolean> => {
-    try {
-      if (typeof window !== 'undefined') {
-        const registeredPhones = localStorage.getItem('registeredPhones');
-        if (registeredPhones) {
-          const phonesArray = JSON.parse(registeredPhones);
-          return phonesArray.includes(phone);
-        }
-      }
-      return false;
-    } catch (error) {
-      console.error('Error checking phone registration:', error);
-      return false;
-    }
-  };
-
   const saveRegisteredPhone = (phone: string) => {
     try {
       if (typeof window !== 'undefined') {
@@ -141,7 +110,7 @@ const Login: React.FC<LoginProps> = ({ onClose }) => {
         }
       }
     } catch (error) {
-      console.error('Error saving phone registration:', error);
+      
     }
   };
 
@@ -151,21 +120,15 @@ const Login: React.FC<LoginProps> = ({ onClose }) => {
     if (recaptchaVerifierRef.current) return recaptchaVerifierRef.current; 
     
     try {
-
       const container = document.getElementById('recaptcha-container');
       if (!container) {
-        console.warn('reCAPTCHA container not found');
         return null;
       }
 
       const verifier = new RecaptchaVerifier(getAuth(), 'recaptcha-container', {
         'size': 'invisible',
-        'callback': () => {
-          console.log('reCAPTCHA solved');
-        },
-        'expired-callback': () => {
-          console.log('reCAPTCHA expired');
-        }
+        'callback': () => {},
+        'expired-callback': () => {}
       });
       
       recaptchaVerifierRef.current = verifier;
@@ -173,7 +136,6 @@ const Login: React.FC<LoginProps> = ({ onClose }) => {
       return verifier;
 
     } catch (e) {
-      console.error("Error initializing reCAPTCHA:", e);
       return null;
     }
   }, []);
@@ -184,7 +146,7 @@ const Login: React.FC<LoginProps> = ({ onClose }) => {
         try {
           recaptchaVerifierRef.current.clear();
         } catch (e) {
-          console.error('Error clearing reCAPTCHA:', e);
+        
         }
         recaptchaVerifierRef.current = null;
       }
@@ -195,7 +157,7 @@ const Login: React.FC<LoginProps> = ({ onClose }) => {
     const formattedPhone = formState.phoneNumber.replace(/\s/g, ''); 
 
     if (!VALIDATION_REGEX.PHONE.test(formattedPhone)) {
-      setError('Please enter a valid phone number with country code (e.g., +91XXXXXXXXXX)');
+      setError(UI_MESSAGES.INVALID_PHONE);
       return;
     }
 
@@ -203,21 +165,12 @@ const Login: React.FC<LoginProps> = ({ onClose }) => {
     clearErrors();
 
     try {
-      
-      const isRegistered = await isPhoneRegistered(formattedPhone);
-      
-      if (!isRegistered) {
-        setError('Phone number not registered. Please sign up first.');
-        setSendingOTP(false);
-        return;
-      }
-
       let appVerifier = recaptchaVerifierRef.current;
       
       if (!appVerifier) {
         appVerifier = initRecaptcha();
         if (!appVerifier) {
-          setError('Failed to initialize reCAPTCHA. Please refresh the page.');
+          setError(UI_MESSAGES.RECAPTCHA_FAILED);
           setSendingOTP(false);
           return;
         }
@@ -227,20 +180,18 @@ const Login: React.FC<LoginProps> = ({ onClose }) => {
       setConfirmationResult(result);
       
       updateFormField('showOTPInput', true);
-      setSuccess('OTP sent successfully! Please check your phone.');
+      setSuccess(UI_MESSAGES.OTP_SENT_SUCCESS);
     } catch (err: unknown) {
-      console.error('Login OTP Error:', err);
-    
       if (recaptchaVerifierRef.current) {
         try {
           recaptchaVerifierRef.current.clear();
         } catch (e) {
-          console.error('Error clearing reCAPTCHA:', e);
+          
         }
         recaptchaVerifierRef.current = null;
       }
       
-      handleError(err, setError, 'Failed to send OTP. Please try again.');
+      handleError(err, setError, UI_MESSAGES.OTP_SEND_FAILED);
     } finally {
       setSendingOTP(false);
     }
@@ -248,12 +199,12 @@ const Login: React.FC<LoginProps> = ({ onClose }) => {
 
   const verifyLoginOTP = async () => {
     if (formState.otpCode.length !== VALIDATION_RULES.OTP_LENGTH) {
-      setError('Please enter a valid 6-digit OTP');
+      setError(UI_MESSAGES.INVALID_OTP);
       return;
     }
 
     if (!confirmationResult) {
-      setError('OTP session expired. Please request a new OTP.');
+      setError(UI_MESSAGES.OTP_NOT_INITIALIZED);
       return;
     }
 
@@ -261,18 +212,18 @@ const Login: React.FC<LoginProps> = ({ onClose }) => {
     clearErrors();
 
     try {
-      
       await confirmationResult.confirm(formState.otpCode);
       
-      setSuccess('Login successful! Redirecting...');
+      setSuccess(UI_MESSAGES.LOGIN_SUCCESS);
       
       setTimeout(() => {
         closePopup();
-        router.push('/'); 
-      }, 1500);
+        
+        router.refresh();
+      }, TIMEOUTS.SUCCESS_REDIRECT);
       
     } catch (err: unknown) { 
-      handleError(err, setError, 'Invalid OTP. Please try again.');
+      handleError(err, setError, UI_MESSAGES.OTP_VERIFY_FAILED);
     } finally {
       setVerifyingOTP(false);
     }
@@ -282,7 +233,7 @@ const Login: React.FC<LoginProps> = ({ onClose }) => {
     const formattedPhone = formState.phoneNumber.replace(/\s/g, ''); 
 
     if (!VALIDATION_REGEX.PHONE.test(formattedPhone)) {
-      setError('Please enter a valid phone number with country code (e.g., +91XXXXXXXXXX)');
+      setError(UI_MESSAGES.INVALID_PHONE);
       return;
     }
 
@@ -295,7 +246,7 @@ const Login: React.FC<LoginProps> = ({ onClose }) => {
       if (!appVerifier) {
         appVerifier = initRecaptcha();
         if (!appVerifier) {
-          setError('Failed to initialize reCAPTCHA. Please refresh the page.');
+          setError(UI_MESSAGES.RECAPTCHA_FAILED);
           setSendingOTP(false);
           return;
         }
@@ -305,20 +256,18 @@ const Login: React.FC<LoginProps> = ({ onClose }) => {
       setConfirmationResult(result);
       
       updateFormField('showOTPInput', true);
-      setSuccess('OTP sent successfully! Please check your phone.');
+      setSuccess(UI_MESSAGES.OTP_SENT_SUCCESS);
     } catch (err: unknown) {
-      console.error('Signup OTP Error:', err);
-      
       if (recaptchaVerifierRef.current) {
         try {
           recaptchaVerifierRef.current.clear();
         } catch (e) {
-          console.error('Error clearing reCAPTCHA:', e);
+          
         }
         recaptchaVerifierRef.current = null;
       }
       
-      handleError(err, setError, 'Failed to send OTP. Please check your Firebase phone auth settings.');
+      handleError(err, setError, UI_MESSAGES.OTP_SEND_FAILED);
     } finally {
       setSendingOTP(false);
     }
@@ -326,12 +275,12 @@ const Login: React.FC<LoginProps> = ({ onClose }) => {
 
   const verifySignupOTP = async () => {
     if (formState.otpCode.length !== VALIDATION_RULES.OTP_LENGTH) {
-      setError('Please enter a valid 6-digit OTP');
+      setError(UI_MESSAGES.INVALID_OTP);
       return;
     }
 
     if (!confirmationResult) {
-      setError('OTP session expired. Please request a new OTP.');
+      setError(UI_MESSAGES.OTP_NOT_INITIALIZED);
       return;
     }
 
@@ -344,15 +293,16 @@ const Login: React.FC<LoginProps> = ({ onClose }) => {
       const formattedPhone = formState.phoneNumber.replace(/\s/g, '');
       saveRegisteredPhone(formattedPhone);
       
-      setSuccess('Signup successful! Redirecting ...');
+      setSuccess(UI_MESSAGES.SIGNUP_SUCCESS);
       
       setTimeout(() => {
         closePopup();
-        router.push('/'); 
-      }, 1500);
+
+        router.refresh();
+      }, TIMEOUTS.SUCCESS_REDIRECT);
       
     } catch (err: unknown) { 
-      handleError(err, setError, 'Invalid OTP. Please try again.');
+      handleError(err, setError, UI_MESSAGES.OTP_VERIFY_FAILED);
     } finally {
       setVerifyingOTP(false);
     }
@@ -385,7 +335,7 @@ const Login: React.FC<LoginProps> = ({ onClose }) => {
 
           <div className="md:w-1/2 bg-black/80 backdrop-blur-md flex justify-center items-center p-5 max-h-[70vh] md:max-h-[90vh] overflow-y-auto">
             <div className="bg-white/10 border border-white/30 rounded-2xl p-6 md:p-8 w-full max-w-sm shadow-xl text-white text-center">
-              
+            
               {!showSignupForm && (
                 <div>
                   <h2 className="text-3xl font-bold mb-6 text-white">Login</h2>
@@ -408,7 +358,7 @@ const Login: React.FC<LoginProps> = ({ onClose }) => {
                           id="loginPhone" 
                           value={formState.phoneNumber} 
                           onChange={(e) => updateFormField('phoneNumber', e.target.value)} 
-                          placeholder="+91XXXXXXXXXX"
+                          placeholder={PLACEHOLDERS.PHONE}
                           disabled={formState.showOTPInput} 
                           required
                           className="w-full p-3 rounded-lg border border-gray-300 bg-white/90 text-gray-800 box-border focus:outline-none focus:ring-2 focus:ring-sky-400 disabled:bg-gray-400/50 disabled:cursor-not-allowed"
@@ -423,7 +373,7 @@ const Login: React.FC<LoginProps> = ({ onClose }) => {
                                      hover:scale-[1.02] disabled:opacity-70 disabled:cursor-not-allowed disabled:transform-none"
                           disabled={sendingOTP}
                         >
-                          {sendingOTP ? 'Sending OTP...' : 'Enter ->'}
+                          {sendingOTP ? 'Sending OTP...' : 'Enter →'}
                         </button>
                       )}
 
@@ -436,7 +386,7 @@ const Login: React.FC<LoginProps> = ({ onClose }) => {
                               id="loginOTP"
                               value={formState.otpCode} 
                               onChange={(e) => updateFormField('otpCode', e.target.value)} 
-                              placeholder="Enter 6-digit OTP"
+                              placeholder={PLACEHOLDERS.OTP}
                               maxLength={VALIDATION_RULES.OTP_LENGTH}
                               required
                               className="w-full p-3 rounded-lg border border-gray-300 bg-white/90 text-gray-800 text-lg tracking-widest text-center focus:outline-none focus:ring-2 focus:ring-sky-400"
@@ -456,8 +406,8 @@ const Login: React.FC<LoginProps> = ({ onClose }) => {
                     </div>
                   </form>
                   
-                  {error && <p className="text-red-400 mt-4 font-medium">{error}</p>}
-                  {success && <p className="text-green-400 mt-4 font-medium">{success}</p>}
+                  {error && <p className="text-red-400 mt-4 font-medium text-sm">{error}</p>}
+                  {success && <p className="text-green-400 mt-4 font-medium text-sm">{success}</p>}
                   
                   <p className="mt-5 text-gray-300 text-base md:text-lg">
                     Don&apos;t have an account? 
@@ -482,13 +432,13 @@ const Login: React.FC<LoginProps> = ({ onClose }) => {
                   }}>
                     <div className="space-y-4 text-left">
                       <div className="form-group">
-                        <label htmlFor="signupPhone" className="block mb-2 font-medium">Mobile Number: </label>
+                        <label htmlFor="signupPhone" className="block mb-2 font-medium">Mobile Number:</label>
                         <input 
                           type="tel" 
                           id="signupPhone" 
                           value={formState.phoneNumber} 
                           onChange={(e) => updateFormField('phoneNumber', e.target.value)} 
-                          placeholder="+91XXXXXXXXXX"
+                          placeholder={PLACEHOLDERS.PHONE}
                           disabled={formState.showOTPInput}
                           required
                           className="w-full p-3 rounded-lg border border-gray-300 bg-white/90 text-gray-800 box-border focus:outline-none focus:ring-2 focus:ring-sky-400 disabled:bg-gray-400/50 disabled:cursor-not-allowed"
@@ -503,7 +453,7 @@ const Login: React.FC<LoginProps> = ({ onClose }) => {
                                      hover:scale-[1.02] disabled:opacity-70 disabled:cursor-not-allowed disabled:transform-none"
                           disabled={sendingOTP}
                         >
-                          {sendingOTP ? 'Sending OTP...' : 'Enter ->'}
+                          {sendingOTP ? 'Sending OTP...' : 'Enter →'}
                         </button>
                       )}
 
@@ -516,7 +466,7 @@ const Login: React.FC<LoginProps> = ({ onClose }) => {
                               id="signupOTP"
                               value={formState.otpCode} 
                               onChange={(e) => updateFormField('otpCode', e.target.value)} 
-                              placeholder="Enter 6-digit OTP"
+                              placeholder={PLACEHOLDERS.OTP}
                               maxLength={VALIDATION_RULES.OTP_LENGTH}
                               required
                               className="w-full p-3 rounded-lg border border-gray-300 bg-white/90 text-gray-800 text-lg tracking-widest text-center focus:outline-none focus:ring-2 focus:ring-sky-400"
@@ -536,8 +486,8 @@ const Login: React.FC<LoginProps> = ({ onClose }) => {
                     </div>
                   </form>
                   
-                  {error && <p className="text-red-400 mt-4 font-medium">{error}</p>}
-                  {success && <p className="text-green-400 mt-4 font-medium">{success}</p>}
+                  {error && <p className="text-red-400 mt-4 font-medium text-sm">{error}</p>}
+                  {success && <p className="text-green-400 mt-4 font-medium text-sm">{success}</p>}
                   
                   <p className="mt-5 text-gray-300 text-lg">
                     Already have an account? 
