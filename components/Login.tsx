@@ -4,16 +4,12 @@ import { useState, useCallback, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation'; 
 import Image from "next/image";
 import { 
-  signInWithEmailAndPassword, 
-  createUserWithEmailAndPassword, 
-  updateProfile, 
-  sendEmailVerification, 
   signOut,
   RecaptchaVerifier,
   signInWithPhoneNumber,
   ConfirmationResult,
-  User,
   getAuth,
+  onAuthStateChanged,
 } from 'firebase/auth';
 import { auth } from '@/src/firebase'; 
 import {
@@ -30,7 +26,16 @@ const isFirebaseError = (err: any): err is { code: string } => {
 };
 
 const getFirebaseErrorMessage = (errorCode: string, defaultMessage: string): string => {
-  return FIREBASE_ERROR_MESSAGES[errorCode] || defaultMessage;
+  const customMessages: { [key: string]: string } = {
+    ...FIREBASE_ERROR_MESSAGES,
+    'auth/invalid-phone-number': 'Invalid phone number format. Please use +[country code][number]',
+    'auth/missing-phone-number': 'Please enter a phone number',
+    'auth/quota-exceeded': 'Too many requests. Please try again later',
+    'auth/captcha-check-failed': 'reCAPTCHA verification failed. Please try again',
+    'auth/invalid-app-credential': 'Phone authentication not properly configured. Please contact support',
+    'auth/web-storage-unsupported': 'Your browser does not support required features',
+  };
+  return customMessages[errorCode] || defaultMessage;
 };
 
 const handleError = (err: unknown, setError: (msg: string) => void, defaultMessage: string) => {
@@ -48,35 +53,15 @@ interface LoginProps {
 }
 
 interface FormState {
-  email: string;
-  password: string;
-  fullName: string;
-  signupEmail: string;
-  signupPassword: string;
-  confirmPassword: string;
   phoneNumber: string;
   otpCode: string;
-  emailVerified: boolean;
-  phoneVerified: boolean;
   showOTPInput: boolean;
-  unverifiedEmail: string;
-  tempPassword: string;
 }
 
 const INITIAL_FORM_STATE: FormState = {
-  email: '',
-  password: '',
-  fullName: '',
-  signupEmail: '',
-  signupPassword: '',
-  confirmPassword: '',
   phoneNumber: '',
   otpCode: '',
-  emailVerified: false,
-  phoneVerified: false,
   showOTPInput: false,
-  unverifiedEmail: '',
-  tempPassword: '',
 };
 
 const Login: React.FC<LoginProps> = ({ onClose }) => {
@@ -85,20 +70,14 @@ const Login: React.FC<LoginProps> = ({ onClose }) => {
 
   const [formState, setFormState] = useState<FormState>(INITIAL_FORM_STATE);
   
-  const [emailVerificationSent, setEmailVerificationSent] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [resendLoading, setResendLoading] = useState(false);
-  const [emailVerifying, setEmailVerifying] = useState(false);
   const [sendingOTP, setSendingOTP] = useState(false);
   const [verifyingOTP, setVerifyingOTP] = useState(false);
   const [showSignupForm, setShowSignupForm] = useState(false);
-  const [showEmailVerification, setShowEmailVerification] = useState(false);
 
   const [confirmationResult, setConfirmationResult] = useState<ConfirmationResult | null>(null);
 
- 
   const updateFormField = useCallback(<K extends keyof FormState>(field: K, value: FormState[K]) => {
     setFormState(prev => ({ ...prev, [field]: value }));
   }, []);
@@ -110,7 +89,6 @@ const Login: React.FC<LoginProps> = ({ onClose }) => {
 
   const clearAllForms = useCallback(() => {
     setFormState(INITIAL_FORM_STATE);
-    setEmailVerificationSent(false);
     clearErrors();
   }, [clearErrors]);
 
@@ -121,53 +99,86 @@ const Login: React.FC<LoginProps> = ({ onClose }) => {
 
   const toggleToSignup = useCallback(() => {
     setShowSignupForm(true);
+    setFormState(prev => ({ ...prev, phoneNumber: '', otpCode: '', showOTPInput: false }));
     clearErrors();
   }, [clearErrors]);
 
   const toggleToLogin = useCallback(() => {
     setShowSignupForm(false);
+    setFormState(prev => ({ ...prev, phoneNumber: '', otpCode: '', showOTPInput: false }));
     clearErrors();
   }, [clearErrors]);
 
-  const backToLogin = useCallback(() => {
-    setShowEmailVerification(false);
-    updateFormField('unverifiedEmail', '');
-    updateFormField('tempPassword', '');
-    clearErrors();
-  }, [clearErrors, updateFormField]);
+  const isPhoneRegistered = async (phone: string): Promise<boolean> => {
+    try {
+      if (typeof window !== 'undefined') {
+        const registeredPhones = localStorage.getItem('registeredPhones');
+        if (registeredPhones) {
+          const phonesArray = JSON.parse(registeredPhones);
+          return phonesArray.includes(phone);
+        }
+      }
+      return false;
+    } catch (error) {
+      console.error('Error checking phone registration:', error);
+      return false;
+    }
+  };
 
-  const initRecaptcha = useCallback((containerId: string) => {
-    if (typeof window === 'undefined') return;
+  const saveRegisteredPhone = (phone: string) => {
+    try {
+      if (typeof window !== 'undefined') {
+        const registeredPhones = localStorage.getItem('registeredPhones');
+        let phonesArray: string[] = [];
+        
+        if (registeredPhones) {
+          phonesArray = JSON.parse(registeredPhones);
+        }
+        
+        if (!phonesArray.includes(phone)) {
+          phonesArray.push(phone);
+          localStorage.setItem('registeredPhones', JSON.stringify(phonesArray));
+        }
+      }
+    } catch (error) {
+      console.error('Error saving phone registration:', error);
+    }
+  };
+
+  const initRecaptcha = useCallback(() => {
+    if (typeof window === 'undefined') return null;
     
-    if (recaptchaVerifierRef.current) return; 
+    if (recaptchaVerifierRef.current) return recaptchaVerifierRef.current; 
     
     try {
-      const verifier = new RecaptchaVerifier(getAuth(), containerId, {
+
+      const container = document.getElementById('recaptcha-container');
+      if (!container) {
+        console.warn('reCAPTCHA container not found');
+        return null;
+      }
+
+      const verifier = new RecaptchaVerifier(getAuth(), 'recaptcha-container', {
         'size': 'invisible',
-        'callback': () => {},
-        'expired-callback': () => {}
+        'callback': () => {
+          console.log('reCAPTCHA solved');
+        },
+        'expired-callback': () => {
+          console.log('reCAPTCHA expired');
+        }
       });
       
       recaptchaVerifierRef.current = verifier;
-
-      verifier.render().then(() => {
-
-      });
       
       return verifier;
 
     } catch (e) {
       console.error("Error initializing reCAPTCHA:", e);
-      setError(UI_MESSAGES.RECAPTCHA_FAILED);
       return null;
     }
   }, []);
 
   useEffect(() => {
-    if (showSignupForm) {
-      initRecaptcha('recaptcha-container');
-    }
-
     return () => {
       if (recaptchaVerifierRef.current) {
         try {
@@ -178,85 +189,13 @@ const Login: React.FC<LoginProps> = ({ onClose }) => {
         recaptchaVerifierRef.current = null;
       }
     };
-  }, [showSignupForm, initRecaptcha]);
+  }, []);
 
-
-  const login = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    clearErrors();
-
-    if (!VALIDATION_REGEX.EMAIL.test(formState.email)) {
-      setError(UI_MESSAGES.INVALID_EMAIL);
-      return;
-    }
-    
-    if (formState.password.length < VALIDATION_RULES.PASSWORD_MIN_LENGTH) {
-      setError(UI_MESSAGES.PASSWORD_TOO_SHORT);
-      return;
-    }
-    
-    setLoading(true);
-    
-    try {
-      const userCredential = await signInWithEmailAndPassword(auth, formState.email, formState.password);
-      const user: User = userCredential.user;
-      await user.reload();
-
-      if (!user.emailVerified) {
-        updateFormField('unverifiedEmail', user.email ?? '');
-        updateFormField('tempPassword', formState.password);
-        await signOut(auth); 
-        setShowEmailVerification(true);
-        setLoading(false);
-        return;
-      }
-      
-      setSuccess(UI_MESSAGES.LOGIN_SUCCESS);
-      updateFormField('email', '');
-      updateFormField('password', '');
-      
-      setTimeout(() => {
-        closePopup(); 
-        router.push('/');
-      }, TIMEOUTS.SUCCESS_REDIRECT);
-      
-    } catch (err: unknown) {
-      handleError(err, setError, UI_MESSAGES.LOGIN_FAILED);
-    } finally {
-      setLoading(false);
-    }
-  };
-
- 
-  const sendEmailVerificationCode = async () => {
-    if (!VALIDATION_REGEX.EMAIL.test(formState.signupEmail)) {
-      setError(UI_MESSAGES.INVALID_EMAIL);
-      return;
-    }
-
-    setEmailVerifying(true);
-    clearErrors();
-
-    try {
-      const tempUserCredential = await createUserWithEmailAndPassword(auth, formState.signupEmail, 'TempPass123!@#');
-      await sendEmailVerification(tempUserCredential.user);
-      await signOut(auth); 
-      
-      setEmailVerificationSent(true);
-      setSuccess(UI_MESSAGES.EMAIL_VERIFICATION_SENT);
-      
-    } catch (err: unknown) { 
-      handleError(err, setError, UI_MESSAGES.SIGNUP_FAILED);
-    } finally {
-      setEmailVerifying(false);
-    }
-  };
-
-  const sendPhoneOTP = async () => {
+  const sendLoginOTP = async () => {
     const formattedPhone = formState.phoneNumber.replace(/\s/g, ''); 
 
     if (!VALIDATION_REGEX.PHONE.test(formattedPhone)) {
-      setError(UI_MESSAGES.INVALID_PHONE);
+      setError('Please enter a valid phone number with country code (e.g., +91XXXXXXXXXX)');
       return;
     }
 
@@ -264,39 +203,135 @@ const Login: React.FC<LoginProps> = ({ onClose }) => {
     clearErrors();
 
     try {
-      if (!recaptchaVerifierRef.current) {
-        initRecaptcha('recaptcha-container');
-      }
       
-      const appVerifier = recaptchaVerifierRef.current;
-
-      if (!appVerifier) {
-        setError(UI_MESSAGES.RECAPTCHA_FAILED);
+      const isRegistered = await isPhoneRegistered(formattedPhone);
+      
+      if (!isRegistered) {
+        setError('Phone number not registered. Please sign up first.');
         setSendingOTP(false);
         return;
+      }
+
+      let appVerifier = recaptchaVerifierRef.current;
+      
+      if (!appVerifier) {
+        appVerifier = initRecaptcha();
+        if (!appVerifier) {
+          setError('Failed to initialize reCAPTCHA. Please refresh the page.');
+          setSendingOTP(false);
+          return;
+        }
       }
       
       const result = await signInWithPhoneNumber(auth, formattedPhone, appVerifier);
       setConfirmationResult(result);
       
       updateFormField('showOTPInput', true);
-      setSuccess(UI_MESSAGES.OTP_SENT_SUCCESS);
-    } catch (err: unknown) { 
-      handleError(err, setError, UI_MESSAGES.OTP_SEND_FAILED);
+      setSuccess('OTP sent successfully! Please check your phone.');
+    } catch (err: unknown) {
+      console.error('Login OTP Error:', err);
+    
+      if (recaptchaVerifierRef.current) {
+        try {
+          recaptchaVerifierRef.current.clear();
+        } catch (e) {
+          console.error('Error clearing reCAPTCHA:', e);
+        }
+        recaptchaVerifierRef.current = null;
+      }
+      
+      handleError(err, setError, 'Failed to send OTP. Please try again.');
     } finally {
       setSendingOTP(false);
     }
   };
 
- 
-  const verifyPhoneOTP = async () => {
+  const verifyLoginOTP = async () => {
     if (formState.otpCode.length !== VALIDATION_RULES.OTP_LENGTH) {
-      setError(UI_MESSAGES.INVALID_OTP);
+      setError('Please enter a valid 6-digit OTP');
       return;
     }
 
     if (!confirmationResult) {
-      setError(UI_MESSAGES.OTP_NOT_INITIALIZED);
+      setError('OTP session expired. Please request a new OTP.');
+      return;
+    }
+
+    setVerifyingOTP(true);
+    clearErrors();
+
+    try {
+      
+      await confirmationResult.confirm(formState.otpCode);
+      
+      setSuccess('Login successful! Redirecting...');
+      
+      setTimeout(() => {
+        closePopup();
+        router.push('/'); 
+      }, 1500);
+      
+    } catch (err: unknown) { 
+      handleError(err, setError, 'Invalid OTP. Please try again.');
+    } finally {
+      setVerifyingOTP(false);
+    }
+  };
+
+  const sendSignupOTP = async () => {
+    const formattedPhone = formState.phoneNumber.replace(/\s/g, ''); 
+
+    if (!VALIDATION_REGEX.PHONE.test(formattedPhone)) {
+      setError('Please enter a valid phone number with country code (e.g., +91XXXXXXXXXX)');
+      return;
+    }
+
+    setSendingOTP(true);
+    clearErrors();
+
+    try {
+      let appVerifier = recaptchaVerifierRef.current;
+      
+      if (!appVerifier) {
+        appVerifier = initRecaptcha();
+        if (!appVerifier) {
+          setError('Failed to initialize reCAPTCHA. Please refresh the page.');
+          setSendingOTP(false);
+          return;
+        }
+      }
+      
+      const result = await signInWithPhoneNumber(auth, formattedPhone, appVerifier);
+      setConfirmationResult(result);
+      
+      updateFormField('showOTPInput', true);
+      setSuccess('OTP sent successfully! Please check your phone.');
+    } catch (err: unknown) {
+      console.error('Signup OTP Error:', err);
+      
+      if (recaptchaVerifierRef.current) {
+        try {
+          recaptchaVerifierRef.current.clear();
+        } catch (e) {
+          console.error('Error clearing reCAPTCHA:', e);
+        }
+        recaptchaVerifierRef.current = null;
+      }
+      
+      handleError(err, setError, 'Failed to send OTP. Please check your Firebase phone auth settings.');
+    } finally {
+      setSendingOTP(false);
+    }
+  };
+
+  const verifySignupOTP = async () => {
+    if (formState.otpCode.length !== VALIDATION_RULES.OTP_LENGTH) {
+      setError('Please enter a valid 6-digit OTP');
+      return;
+    }
+
+    if (!confirmationResult) {
+      setError('OTP session expired. Please request a new OTP.');
       return;
     }
 
@@ -305,116 +340,21 @@ const Login: React.FC<LoginProps> = ({ onClose }) => {
 
     try {
       await confirmationResult.confirm(formState.otpCode);
-      updateFormField('phoneVerified', true);
-      updateFormField('showOTPInput', false);
-      setSuccess(UI_MESSAGES.PHONE_VERIFIED_SUCCESS);
+  
+      const formattedPhone = formState.phoneNumber.replace(/\s/g, '');
+      saveRegisteredPhone(formattedPhone);
       
-      await signOut(auth); 
+      setSuccess('Signup successful! Redirecting ...');
+      
+      setTimeout(() => {
+        closePopup();
+        router.push('/'); 
+      }, 1500);
+      
     } catch (err: unknown) { 
-      handleError(err, setError, UI_MESSAGES.OTP_VERIFY_FAILED);
+      handleError(err, setError, 'Invalid OTP. Please try again.');
     } finally {
       setVerifyingOTP(false);
-    }
-  };
-
-  const signup = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    clearErrors();
-
-    if (!formState.phoneVerified) {
-      setError(UI_MESSAGES.PHONE_NOT_VERIFIED);
-      return;
-    }
-    
-    if (!VALIDATION_REGEX.EMAIL.test(formState.signupEmail)) {
-      setError(UI_MESSAGES.INVALID_EMAIL);
-      return;
-    }
-    
-    if (formState.fullName.trim().length < VALIDATION_RULES.NAME_MIN_LENGTH) {
-      setError(UI_MESSAGES.NAME_TOO_SHORT);
-      return;
-    }
-    
-    if (formState.signupPassword !== formState.confirmPassword) {
-      setError(UI_MESSAGES.PASSWORDS_MISMATCH);
-      return;
-    }
-    
-    if (formState.signupPassword.length < VALIDATION_RULES.PASSWORD_MIN_LENGTH) {
-      setError(UI_MESSAGES.PASSWORD_TOO_SHORT);
-      return;
-    }
-    
-    setLoading(true);
-    
-    try {
-      const userCredential = await createUserWithEmailAndPassword(auth, formState.signupEmail, formState.signupPassword);
-      const user = userCredential.user;
-      
-      await updateProfile(user, {
-        displayName: formState.fullName.trim(),
-      });
-      
-      await sendEmailVerification(user);
-      await signOut(auth); 
-      
-      setSuccess(UI_MESSAGES.SIGNUP_SUCCESS);
-
-      clearAllForms(); 
-      setTimeout(() => {
-        setSuccess(null);
-        setShowSignupForm(false);
-      }, TIMEOUTS.SUCCESS_MESSAGE);
-      
-    } catch (err: unknown) { 
-      handleError(err, setError, UI_MESSAGES.SIGNUP_FAILED);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const resendVerification = async () => {
-    setResendLoading(true);
-    clearErrors();
-    
-    try {
-      const tempCredential = await signInWithEmailAndPassword(auth, formState.unverifiedEmail, formState.tempPassword);
-      await sendEmailVerification(tempCredential.user);
-      await signOut(auth); 
-      
-      setSuccess(UI_MESSAGES.EMAIL_VERIFICATION_RESENT);
-    } catch (err: unknown) { 
-      handleError(err, setError, UI_MESSAGES.VERIFICATION_RESEND_FAILED);
-    } finally {
-      setResendLoading(false);
-    }
-  };
-
-  const checkVerificationStatus = async () => {
-    setLoading(true);
-    clearErrors();
-    
-    try {
-      const userCredential = await signInWithEmailAndPassword(auth, formState.unverifiedEmail, formState.tempPassword);
-      await userCredential.user.reload(); 
-      
-      if (userCredential.user.emailVerified) {
-        setSuccess(UI_MESSAGES.EMAIL_VERIFIED_SUCCESS);
-        setShowEmailVerification(false);
-        
-        setTimeout(() => {
-          closePopup();
-          router.push('/');
-        }, TIMEOUTS.SUCCESS_REDIRECT);
-      } else {
-        await signOut(auth); 
-        setError(UI_MESSAGES.EMAIL_NOT_VERIFIED);
-      }
-    } catch (err: unknown) {
-      handleError(err, setError, UI_MESSAGES.LOGIN_FAILED);
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -435,54 +375,85 @@ const Login: React.FC<LoginProps> = ({ onClose }) => {
           
           <div className="flex-1 bg-[#dadada] flex items-center justify-center p-5 md:p-10 h-[150px] md:h-auto">
             <Image
-  src="/assets/login/welcome-character.png"
-  alt="Welcome Character"
-  width={400} 
-  height={400} 
-  className="max-w-[40%] md:max-w-[90%] h-auto rounded-[10px] object-contain"
-/>
+              src="/assets/login/welcome-character.png"
+              alt="Welcome Character"
+              width={400} 
+              height={400} 
+              className="max-w-[40%] md:max-w-[90%] h-auto rounded-[10px] object-contain"
+            />
           </div>
 
-          <div className={`md:w-1/2 bg-black/80 backdrop-blur-md flex justify-center p-5 max-h-[70vh] md:max-h-[90vh] overflow-y-auto ${showSignupForm ? 'items-start pt-8' : 'items-center'}`}>
+          <div className="md:w-1/2 bg-black/80 backdrop-blur-md flex justify-center items-center p-5 max-h-[70vh] md:max-h-[90vh] overflow-y-auto">
             <div className="bg-white/10 border border-white/30 rounded-2xl p-6 md:p-8 w-full max-w-sm shadow-xl text-white text-center">
               
-              {!showSignupForm && !showEmailVerification && (
+              {!showSignupForm && (
                 <div>
                   <h2 className="text-3xl font-bold mb-6 text-white">Login</h2>
-                  <form onSubmit={login}>
+                 
+                  <div id="recaptcha-container" className="mb-4"></div>
+                  
+                  <form onSubmit={(e) => {
+                    e.preventDefault();
+                    if (!formState.showOTPInput) {
+                      sendLoginOTP();
+                    } else {
+                      verifyLoginOTP();
+                    }
+                  }}>
                     <div className="space-y-4 text-left">
                       <div className="form-group">
-                        <label htmlFor="email" className="block mb-2 font-medium">Email:</label>
+                        <label htmlFor="loginPhone" className="block mb-2 font-medium">Mobile Number:</label>
                         <input 
-                          type="email" 
-                          id="email" 
-                          value={formState.email} 
-                          onChange={(e) => updateFormField('email', e.target.value)} 
-                          required 
-                          className="w-full p-3 rounded-lg border border-gray-300 bg-white/90 text-gray-800 box-border focus:outline-none focus:ring-2 focus:ring-sky-400"
+                          type="tel" 
+                          id="loginPhone" 
+                          value={formState.phoneNumber} 
+                          onChange={(e) => updateFormField('phoneNumber', e.target.value)} 
+                          placeholder="+91XXXXXXXXXX"
+                          disabled={formState.showOTPInput} 
+                          required
+                          className="w-full p-3 rounded-lg border border-gray-300 bg-white/90 text-gray-800 box-border focus:outline-none focus:ring-2 focus:ring-sky-400 disabled:bg-gray-400/50 disabled:cursor-not-allowed"
                         />
                       </div>
-                      <div className="form-group">
-                        <label htmlFor="password" className="block mb-2 font-medium">Password:</label>
-                        <input 
-                          type="password" 
-                          id="password" 
-                          value={formState.password} 
-                          onChange={(e) => updateFormField('password', e.target.value)} 
-                          required 
-                          className="w-full p-3 rounded-lg border border-gray-300 bg-white/90 text-gray-800 box-border focus:outline-none focus:ring-2 focus:ring-sky-400"
-                        />
-                      </div>
+
+                      {!formState.showOTPInput && (
+                        <button 
+                          type="submit"
+                          className="w-full p-3 rounded-lg text-lg font-bold cursor-pointer transition-transform duration-200 ease-in-out text-white 
+                                     bg-[linear-gradient(90deg,_#12DBE5_0%,_#1F5799_48.96%,_#F20000_100%)] 
+                                     hover:scale-[1.02] disabled:opacity-70 disabled:cursor-not-allowed disabled:transform-none"
+                          disabled={sendingOTP}
+                        >
+                          {sendingOTP ? 'Sending OTP...' : 'Enter ->'}
+                        </button>
+                      )}
+
+                      {formState.showOTPInput && (
+                        <div className="space-y-3">
+                          <div className="form-group">
+                            <label htmlFor="loginOTP" className="block mb-2 font-medium">Enter OTP:</label>
+                            <input 
+                              type="text" 
+                              id="loginOTP"
+                              value={formState.otpCode} 
+                              onChange={(e) => updateFormField('otpCode', e.target.value)} 
+                              placeholder="Enter 6-digit OTP"
+                              maxLength={VALIDATION_RULES.OTP_LENGTH}
+                              required
+                              className="w-full p-3 rounded-lg border border-gray-300 bg-white/90 text-gray-800 text-lg tracking-widest text-center focus:outline-none focus:ring-2 focus:ring-sky-400"
+                            />
+                          </div>
+                          <button 
+                            type="submit"
+                            className="w-full p-3 rounded-lg text-lg font-bold cursor-pointer transition-transform duration-200 ease-in-out text-white 
+                                       bg-[linear-gradient(90deg,_#12DBE5_0%,_#1F5799_48.96%,_#F20000_100%)] 
+                                       hover:scale-[1.02] disabled:opacity-70 disabled:cursor-not-allowed disabled:transform-none"
+                            disabled={verifyingOTP}
+                          >
+                            {verifyingOTP ? 'Verifying...' : 'Verify & Login'}
+                          </button>
+                        </div>
+                      )}
                     </div>
-                    <button 
-                      type="submit" 
-                      className="w-full p-3 mt-5 rounded-lg text-lg font-bold cursor-pointer transition-transform duration-200 ease-in-out text-white 
-                                 bg-[linear-gradient(90deg,_#12DBE5_0%,_#1F5799_48.96%,_#F20000_100%)] 
-                                 hover:scale-[1.02] disabled:opacity-70 disabled:cursor-not-allowed disabled:transform-none"
-                      disabled={loading}
-                    >
-                      {loading ? 'Logging in...' : 'Log In'}
-                    </button>
                   </form>
                   
                   {error && <p className="text-red-400 mt-4 font-medium">{error}</p>}
@@ -495,182 +466,75 @@ const Login: React.FC<LoginProps> = ({ onClose }) => {
                 </div>
               )}
 
-              {showEmailVerification && (
-                <div>
-                  <h2 className="text-3xl font-bold mb-6 text-white">Verify Email</h2>
-                  <p className="text-gray-300 mb-5 leading-relaxed">
-                    Please verify your email address before logging in. Check your inbox for the verification link.
-                  </p>
-                  <p className="text-gray-300 mb-5 text-sm">
-                    Email: <strong>{formState.unverifiedEmail}</strong>
-                  </p>
-                  
-                  <button 
-                    onClick={resendVerification} 
-                    className="w-full p-3 rounded-lg text-lg font-bold cursor-pointer transition-transform duration-200 ease-in-out text-white 
-                               bg-blue-600 hover:scale-[1.02] disabled:opacity-70 disabled:cursor-not-allowed disabled:transform-none"
-                    disabled={resendLoading}
-                  >
-                    {resendLoading ? 'Sending...' : 'Resend Verification Email'}
-                  </button>
-                  
-                  <button 
-                    onClick={checkVerificationStatus} 
-                    className="w-full p-3 mt-3 rounded-lg text-lg font-bold cursor-pointer transition-transform duration-200 ease-in-out text-white 
-                               bg-[linear-gradient(90deg,_#12DBE5_0%,_#1F5799_48.96%,_#F20000_100%)] 
-                               hover:scale-[1.02] disabled:opacity-70 disabled:cursor-not-allowed disabled:transform-none" 
-                    disabled={loading}
-                  >
-                    {loading ? 'Checking...' : 'I\'ve Verified, Let Me Login'}
-                  </button>
-                  
-                  {error && <p className="text-red-400 mt-4 font-medium">{error}</p>}
-                  {success && <p className="text-green-400 mt-4 font-medium">{success}</p>}
-                  
-                  <p className="mt-5 text-gray-300 text-lg">
-                    <a href="#" onClick={backToLogin} className="text-cyan-400 hover:text-sky-400 font-extrabold transition-colors">Back to Login</a>
-                  </p>
-                </div>
-              )}
-
-              
               {showSignupForm && (
                 <div>
                   <h2 className="text-3xl font-bold mb-6 text-white">Sign Up</h2>
-                  <form onSubmit={signup}>
+                  
+                  <div id="recaptcha-container" className="mb-4"></div>
+                  
+                  <form onSubmit={(e) => {
+                    e.preventDefault();
+                    if (!formState.showOTPInput) {
+                      sendSignupOTP();
+                    } else {
+                      verifySignupOTP();
+                    }
+                  }}>
                     <div className="space-y-4 text-left">
-                      
-                    
                       <div className="form-group">
-                        <label htmlFor="fullName" className="block mb-2 font-medium">Full Name:</label>
+                        <label htmlFor="signupPhone" className="block mb-2 font-medium">Mobile Number: </label>
                         <input 
-                          type="text" 
-                          id="fullName" 
-                          value={formState.fullName} 
-                          onChange={(e) => updateFormField('fullName', e.target.value)} 
-                          required 
-                          className="w-full p-3 rounded-lg border border-gray-300 bg-white/90 text-gray-800 box-border focus:outline-none focus:ring-2 focus:ring-sky-400"
+                          type="tel" 
+                          id="signupPhone" 
+                          value={formState.phoneNumber} 
+                          onChange={(e) => updateFormField('phoneNumber', e.target.value)} 
+                          placeholder="+91XXXXXXXXXX"
+                          disabled={formState.showOTPInput}
+                          required
+                          className="w-full p-3 rounded-lg border border-gray-300 bg-white/90 text-gray-800 box-border focus:outline-none focus:ring-2 focus:ring-sky-400 disabled:bg-gray-400/50 disabled:cursor-not-allowed"
                         />
                       </div>
-                      
-                     
-                      <div className="form-group">
-                        <label htmlFor="signupEmail" className="block mb-2 font-medium">Email: *</label>
-                        <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 items-center">
-                          <input 
-                            type="email" 
-                            id="signupEmail" 
-                            value={formState.signupEmail} 
-                            onChange={(e) => updateFormField('signupEmail', e.target.value)} 
-                            disabled={formState.emailVerified}
-                            required
-                            className="flex-1 w-full sm:w-auto p-3 rounded-lg border border-gray-300 bg-white/90 text-gray-800 box-border focus:outline-none focus:ring-2 focus:ring-sky-400 disabled:bg-gray-400/50 disabled:cursor-not-allowed"
-                          />
-                          <button 
-                            type="button" 
-                            className="p-3 px-4 rounded-lg bg-gradient-to-r from-cyan-400 to-blue-600 text-white font-bold cursor-pointer whitespace-nowrap transition-transform duration-200 hover:scale-[1.05] disabled:opacity-60 disabled:cursor-not-allowed"
-                            onClick={sendEmailVerificationCode}
-                            disabled={formState.emailVerified || emailVerifying}
-                          >
-                            {formState.emailVerified ? '✓ Verified' : emailVerifying ? 'Sending...' : 'Verify'}
-                          </button>
-                        </div>
-                        {emailVerificationSent && <p className="text-green-400 text-sm mt-1">Verification email sent! Check your inbox and click the link.</p>}
-                      </div>
-               
-                      <div className="form-group">
-                        <label htmlFor="phoneNumber" className="block mb-2 font-medium">Mobile Number: *</label>
-                        <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 items-center">
-                          <input 
-                            type="tel" 
-                            id="phoneNumber" 
-                            value={formState.phoneNumber} 
-                            onChange={(e) => updateFormField('phoneNumber', e.target.value)} 
-                            placeholder={PLACEHOLDERS.PHONE}
-                            disabled={formState.phoneVerified || formState.showOTPInput} 
-                            required
-                            className="flex-1 w-full sm:w-auto p-3 rounded-lg border border-gray-300 bg-white/90 text-gray-800 box-border focus:outline-none focus:ring-2 focus:ring-sky-400 disabled:bg-gray-400/50 disabled:cursor-not-allowed"
-                          />
-                          <button 
-                            type="button" 
-                            className="p-3 px-4 rounded-lg bg-gradient-to-r from-cyan-400 to-blue-600 text-white font-bold cursor-pointer whitespace-nowrap transition-transform duration-200 hover:scale-[1.05] disabled:opacity-60 disabled:cursor-not-allowed"
-                            onClick={sendPhoneOTP}
-                            disabled={formState.phoneVerified || sendingOTP || formState.showOTPInput}
-                          >
-                            {formState.phoneVerified ? '✓ Verified' : sendingOTP ? 'Sending...' : 'Verify'}
-                          </button>
-                        </div>
-                        <p className="text-red-400 text-xs italic mt-1">* This field is mandatory</p>
-                        
-                        {formState.showOTPInput && !formState.phoneVerified && (
-                          <div className="flex gap-2 mt-3">
+
+                      {!formState.showOTPInput && (
+                        <button 
+                          type="submit"
+                          className="w-full p-3 rounded-lg text-lg font-bold cursor-pointer transition-transform duration-200 ease-in-out text-white 
+                                     bg-[linear-gradient(90deg,_#12DBE5_0%,_#1F5799_48.96%,_#F20000_100%)] 
+                                     hover:scale-[1.02] disabled:opacity-70 disabled:cursor-not-allowed disabled:transform-none"
+                          disabled={sendingOTP}
+                        >
+                          {sendingOTP ? 'Sending OTP...' : 'Enter ->'}
+                        </button>
+                      )}
+
+                      {formState.showOTPInput && (
+                        <div className="space-y-3">
+                          <div className="form-group">
+                            <label htmlFor="signupOTP" className="block mb-2 font-medium">Enter OTP:</label>
                             <input 
                               type="text" 
+                              id="signupOTP"
                               value={formState.otpCode} 
                               onChange={(e) => updateFormField('otpCode', e.target.value)} 
-                              placeholder={PLACEHOLDERS.OTP}
+                              placeholder="Enter 6-digit OTP"
                               maxLength={VALIDATION_RULES.OTP_LENGTH}
-                              className="flex-1 p-3 rounded-lg border border-gray-300 bg-white/90 text-gray-800 text-lg tracking-widest text-center focus:outline-none focus:ring-2 focus:ring-sky-400"
+                              required
+                              className="w-full p-3 rounded-lg border border-gray-300 bg-white/90 text-gray-800 text-lg tracking-widest text-center focus:outline-none focus:ring-2 focus:ring-sky-400"
                             />
-                            <button 
-                              type="button" 
-                              className="p-3 px-4 rounded-lg bg-emerald-500 text-white font-bold cursor-pointer whitespace-nowrap transition-transform duration-200 hover:scale
-                              -[1.05] disabled:opacity-60 disabled:cursor-not-allowed"
-                              onClick={verifyPhoneOTP}
-                              disabled={verifyingOTP}
-                            >
-                              {verifyingOTP ? 'Verifying...' : 'Verify OTP'}
-                            </button>
                           </div>
-                        )}
-                      </div>
- 
-                      <div className="form-group">
-                        <label htmlFor="signupPassword" className="block mb-2 font-medium">Password:</label>
-                        <input 
-                          type="password" 
-                          id="signupPassword" 
-                          value={formState.signupPassword} 
-                          onChange={(e) => updateFormField('signupPassword', e.target.value)} 
-                          required 
-                          minLength={VALIDATION_RULES.PASSWORD_MIN_LENGTH}
-                          className="w-full p-3 rounded-lg border border-gray-300 bg-white/90 text-gray-800 box-border focus:outline-none focus:ring-2 focus:ring-sky-400"
-                        />
-                      </div>
-                      
-                      
-                      <div className="form-group">
-                        <label htmlFor="confirmPassword" className="block mb-2 font-medium">Confirm Password:</label>
-                        <input 
-                          type="password" 
-                          id="confirmPassword" 
-                          value={formState.confirmPassword} 
-                          onChange={(e) => updateFormField('confirmPassword', e.target.value)} 
-                          required 
-                          className="w-full p-3 rounded-lg border border-gray-300 bg-white/90 text-gray-800 box-border focus:outline-none focus:ring-2 focus:ring-sky-400"
-                        />
-                      </div>
-                      
+                          <button 
+                            type="submit"
+                            className="w-full p-3 rounded-lg text-lg font-bold cursor-pointer transition-transform duration-200 ease-in-out text-white 
+                                       bg-[linear-gradient(90deg,_#12DBE5_0%,_#1F5799_48.96%,_#F20000_100%)] 
+                                       hover:scale-[1.02] disabled:opacity-70 disabled:cursor-not-allowed disabled:transform-none"
+                            disabled={verifyingOTP}
+                          >
+                            {verifyingOTP ? 'Verifying...' : 'Verify & Sign Up'}
+                          </button>
+                        </div>
+                      )}
                     </div>
-                    
-                    <button 
-                      type="submit" 
-                      className="w-full p-3 mt-5 rounded-lg text-lg font-bold cursor-pointer transition-transform duration-200 ease-in-out text-white 
-                                 bg-[linear-gradient(90deg,_#12DBE5_0%,_#1F5799_48.96%,_#F20000_100%)] 
-                                 hover:scale-[1.02] disabled:opacity-70 disabled:cursor-not-allowed disabled:transform-none"
-                      disabled={loading || !formState.phoneVerified}
-                    >
-                      {loading ? 'Creating Account...' : 'Sign Up'}
-                    </button>
-                    
-                    {!formState.phoneVerified && (
-                      <p className="text-yellow-400 text-sm mt-3">
-                        Please verify your phone number to sign up
-                      </p>
-                    )}
                   </form>
-                  
-                  <div id="recaptcha-container" className="mt-2"></div>
                   
                   {error && <p className="text-red-400 mt-4 font-medium">{error}</p>}
                   {success && <p className="text-green-400 mt-4 font-medium">{success}</p>}
