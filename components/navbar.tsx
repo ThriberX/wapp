@@ -8,7 +8,7 @@ import { onAuthStateChanged, signOut, User } from 'firebase/auth';
 import { auth } from '@/src/firebase';
 import { buttonStyles, buttonHandlers } from "@/lib/theme/buttonstyle";
 import { GRADIENTS } from "@/lib/theme/colours";
-import Login from '@/components/Login';
+import AuthContainer from "@/components/auth/AuthContainer";
 
 interface NavbarProps {
   onLoginClick?: () => void;
@@ -59,7 +59,7 @@ export default function Navbar({ onLoginClick }: NavbarProps) {
       setShowDropdown(false);
       router.refresh();
     } catch (error) {
-     
+      console.error('Logout error:', error);
     }
   };
 
@@ -135,13 +135,11 @@ export default function Navbar({ onLoginClick }: NavbarProps) {
             {loading ? (
               <div className="w-12 h-12 rounded-full bg-gray-700 animate-pulse"></div>
             ) : user ? (
-          
               <div className="relative">
                 <button
                   onClick={() => setShowDropdown(!showDropdown)}
                   className="flex items-center space-x-2 lg:space-x-3 focus:outline-none hover:opacity-90 transition"
                 >
-                  
                   <div 
                     className="w-10 h-10 lg:w-12 lg:h-12 rounded-full flex items-center justify-center shadow-lg"
                     style={{ background: GRADIENTS.PRIMARY }}
@@ -155,7 +153,6 @@ export default function Navbar({ onLoginClick }: NavbarProps) {
                     </svg>
                   </div>
                   
-                 
                   <span className="text-sm lg:text-base text-white font-medium hidden lg:block">
                     {formatPhoneNumber(user.phoneNumber)}
                   </span>
@@ -178,7 +175,7 @@ export default function Navbar({ onLoginClick }: NavbarProps) {
                   <div className="absolute right-0 mt-2 w-48 bg-black/90 backdrop-blur-md rounded-lg shadow-xl py-2 z-50 border border-gray-700">
                     <button 
                       onClick={handleLogout}  
-                      className="w-full text-left px-15 py-2 text-sm text-red-400 hover:bg-red-500/10 transition"
+                      className="w-full text-left px-4 py-2 text-sm text-red-400 hover:bg-red-500/10 transition"
                     >
                       Logout
                     </button>
@@ -186,7 +183,6 @@ export default function Navbar({ onLoginClick }: NavbarProps) {
                 )}
               </div>
             ) : (
-             
               <button 
                 className={`${buttonStyles.base} text-base lg:text-xl py-2 lg:py-3 px-4 lg:px-5 font-black`}
                 style={{ background: GRADIENTS.PRIMARY }}
@@ -211,10 +207,8 @@ export default function Navbar({ onLoginClick }: NavbarProps) {
           </button>
         </div>
 
-     
         {isNavOpen && (
           <div className="absolute top-20 right-4 bg-black/90 backdrop-blur-md text-white rounded-xl flex flex-col gap-4 p-6 w-60 md:hidden z-50 border border-gray-700">
-            
             {user ? (
               <div className="border-b border-gray-700 pb-4 mb-2">
                 <div className="flex items-center space-x-3 mb-3">
@@ -285,7 +279,10 @@ export default function Navbar({ onLoginClick }: NavbarProps) {
       </nav>
 
       {showAuthPopup && (
-        <Login onClose={handleClosePopup} />
+        <AuthContainer 
+          onClose={handleClosePopup} 
+          initialView="login"
+        />
       )}
 
       {showDropdown && (
