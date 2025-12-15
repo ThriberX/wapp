@@ -11,16 +11,16 @@ import Login from '@/components/Login';
 
 export default function HomePage() {
    
-    const [showAuthPopup, setShowAuthPopup] = useState(false);
+  const [showAuthPopup, setShowAuthPopup] = useState(false);
 
-    const handleLoginClick = useCallback(() => {
-        setShowAuthPopup(true);
-        console.log("Login button clicked, showing Auth Popup."); 
-    }, []);
+  const handleLoginClick = useCallback(() => {
+      setShowAuthPopup(true);
+      console.log("Login button clicked, showing Auth Popup."); 
+  }, []);
 
-    const handleClosePopup = useCallback(() => {
-        setShowAuthPopup(false);
-    }, []);
+  const handleClosePopup = useCallback(() => {
+      setShowAuthPopup(false);
+  }, []);
 
     return (
       <>
@@ -31,11 +31,12 @@ export default function HomePage() {
           <LandingPage/>
         </main>
 
+        
         {showAuthPopup && (
           <Login 
             onClose={handleClosePopup} 
-          />
-        )}
+          />)}
+
       </>
     );
 }

@@ -5,7 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from 'next/navigation'; 
 import { onAuthStateChanged, signOut, User } from 'firebase/auth';
-import { auth } from '@/src/firebase';
+import { auth } from '@/lib/authentication /signIn';
 import { buttonStyles, buttonHandlers } from "@/lib/theme/buttonstyle";
 import { GRADIENTS } from "@/lib/theme/colours";
 import Login from '@/components/Login';
