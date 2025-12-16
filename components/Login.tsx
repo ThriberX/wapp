@@ -1,8 +1,8 @@
   'use client'; 
   import { useState, useCallback, useEffect, useRef } from 'react';
   import { PLACEHOLDERS,VALIDATION_RULES, } from '@/lib/constants/authConstants';
-  import sendotp, {setuprecapcha} from '@/lib/authentication /signIn';
-  import  otpverifcation from '@/lib/authentication /signIn';
+  import {sentotp, setuprecapcha} from '@/lib/authentication /signIn';
+  import  {otpverifcation} from '@/lib/authentication /signIn';
 
   interface FormState {
     phoneNumber: string;
@@ -54,7 +54,7 @@
     try {
       const formatted = "+91" + formState.phoneNumber;
      await setuprecapcha();//spel correction
-      await sendotp(formatted);
+      await sentotp(formatted);
       
       setShowOTPScreen(true);
       setSuccess("OTP sent successfully!");
