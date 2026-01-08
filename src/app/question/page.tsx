@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from "react";
-import { db } from '@/lib/firebase'; 
+import { db } from '@/lib/authentication /signIn'
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { getAIQuizAdvice } from './Interface';
 
