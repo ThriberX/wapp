@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { callAI } from '@/lib/ai-calls';
 
+export const runtime = 'edge';
+
 export async function POST(req, { params }) {
   try {
     const resolvedParams = await params;
